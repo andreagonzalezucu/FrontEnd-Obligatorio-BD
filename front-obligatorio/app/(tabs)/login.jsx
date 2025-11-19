@@ -13,7 +13,7 @@ export default function Login() {
   const BASE_URL =
   Platform.OS === "android"
     ? "http://10.0.2.2:5000"
-    : "http://192.168.102.2:5000"; //poner ip propia
+    : "http://127.0.0.1:5000"; //Local host, para que se pueda conectar desde cualquier dispositivo
 
   const handleLogin = async () => {
     setError('');
