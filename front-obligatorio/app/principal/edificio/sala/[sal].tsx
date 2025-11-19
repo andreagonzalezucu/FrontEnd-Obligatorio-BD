@@ -11,6 +11,7 @@ export default function SalaDetalle() {
   const [día, setDía] = useState<string>(new Date().toISOString().split("T")[0]); // yyyy-mm-dd
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [turnEle, setTurnEle] = useState(0);
 
   const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
@@ -18,7 +19,7 @@ export default function SalaDetalle() {
 
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
-    const response = await fetch(`http://localhost:5000/salas`);
+    const response = await fetch(`http://127.0.0.1/salas`);
     const data = await response.json();
 
     const sala = data.find((s: any) => s.id_sala == sal);
@@ -27,7 +28,7 @@ export default function SalaDetalle() {
 
   // ========= 2. Obtener turnos =========
   const fetchTurnos = async () => {
-    const response = await fetch("http://localhost:5000/turnos");
+    const response = await fetch("http://127.0.0.1:5000/turnos");
     const data = await response.json();
     setTurnos(data);
   };
@@ -35,7 +36,7 @@ export default function SalaDetalle() {
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
   const fetchOcupados = async () => {
     const response = await fetch(
-      `http://localhost:5000/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
+      `http://127.0.0.1:5000/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
     );
     const data = await response.json();
 
@@ -75,24 +76,24 @@ export default function SalaDetalle() {
   };
 
   // ========= 4. Crear reserva =========
-  const crearReserva = async (id_turno: number) => {
+  const crearReserva = async () => {
     setLoadingReserva(true);
+    if(turnEle!==0){
+      try {
+        const response = await fetch("http://127.0.0.1:5000/reservas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_sala: Number(sal),
+            fecha: día,
+            id_turno: turnEle,
+            estado: "activa",
+            participantes
+          })
+        });
 
-    try {
-      const response = await fetch("http://localhost:5000/reservas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_sala: Number(sal),
-          fecha: día,
-          id_turno,
-          estado: "activa",
-          participantes
-        })
-      });
-
-      const data = await response.json();
-      setLoadingReserva(false);
+        const data = await response.json();
+        setLoadingReserva(false);
 
       if (response.ok) {
         Alert.alert("Éxito", "Reserva creada correctamente");
@@ -106,12 +107,18 @@ export default function SalaDetalle() {
     }
   };
 
-  if (loading || !salaInfo) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e3a8a" />
-      </View>
-    );
+    if (loading || !salaInfo) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#1e3a8a" />
+        </View>
+      );
+    }
+    
+  }
+
+  const guardarTurno=(turn: number)=>{
+    setTurnEle(turn);
   }
 
   return (
@@ -141,7 +148,7 @@ export default function SalaDetalle() {
             key={t.id_turno}
             style={[styles.turno, ocupado && styles.turnoOcupado]}
             disabled={ocupado}
-            onPress={() => crearReserva(t.id_turno)}
+            onPress={() => guardarTurno(t.id_turno)}
           >
             <Text style={styles.turnoText}>
               {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
@@ -175,6 +182,10 @@ export default function SalaDetalle() {
       ))}
 
       {loadingReserva && <ActivityIndicator size="large" color="#1e3a8a" />}
+
+      <TouchableOpacity onPress={()=>crearReserva(t.id_turno)}>
+        <Text>Confirmar Reserva</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
