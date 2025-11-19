@@ -19,10 +19,10 @@ export default function SalaDetalle() {
 
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
-    const response = await fetch(`http://127.0.0.1/salas`);
+    const response = await fetch(`http://127.0.0.1:5000/salas`);
     const data = await response.json();
 
-    const sala = data.find((s: any) => s.id_sala == sal);
+    const sala = data.find((s: any) => s.id_sala === sal);
     setSalaInfo(sala);
   };
 
@@ -42,7 +42,7 @@ export default function SalaDetalle() {
 
     // Filtrar solo las de esta sala
     const ocupadas = data
-      .filter((r: any) => r.sala.nombre_sala === salaInfo?.nombre_sala)
+      .filter((r: any) => r.sala?.nombre_sala === salaInfo?.nombre_sala)
       .map((r: any) => r.turno.hora_inicio); // luego comparo por hora
 
     setOcupados(ocupadas);
@@ -123,10 +123,10 @@ export default function SalaDetalle() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{salaInfo.nombre_sala}</Text>
-      <Text style={styles.subtitle}>Edificio: {salaInfo.nombre_edificio}</Text>
-      <Text style={styles.subtitle}>Capacidad: {salaInfo.capacidad}</Text>
-      <Text style={styles.subtitle}>Tipo: {salaInfo.tipo_sala}</Text>
+      <Text style={styles.title}>{salaInfo?.nombre_sala}</Text>
+      <Text style={styles.subtitle}>Edificio: {salaInfo?.nombre_edificio}</Text>
+      <Text style={styles.subtitle}>Capacidad: {salaInfo?.capacidad}</Text>
+      <Text style={styles.subtitle}>Tipo: {salaInfo?.tipo_sala}</Text>
 
       {/* FECHA */}
       <Text style={styles.section}>Fecha</Text>
@@ -183,7 +183,7 @@ export default function SalaDetalle() {
 
       {loadingReserva && <ActivityIndicator size="large" color="#1e3a8a" />}
 
-      <TouchableOpacity onPress={()=>crearReserva(t.id_turno)}>
+      <TouchableOpacity onPress={()=>crearReserva()}>
         <Text>Confirmar Reserva</Text>
       </TouchableOpacity>
     </ScrollView>
