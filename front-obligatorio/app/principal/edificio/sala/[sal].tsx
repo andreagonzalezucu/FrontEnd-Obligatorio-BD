@@ -18,7 +18,7 @@ export default function SalaDetalle() {
 
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
-    const response = await fetch(`http://10.0.2.2:5000/salas`);
+    const response = await fetch(`http://localhost:5000/salas`);
     const data = await response.json();
 
     const sala = data.find((s: any) => s.id_sala == sal);
@@ -27,7 +27,7 @@ export default function SalaDetalle() {
 
   // ========= 2. Obtener turnos =========
   const fetchTurnos = async () => {
-    const response = await fetch("http://10.0.2.2:5000/turnos");
+    const response = await fetch("http://localhost:5000/turnos");
     const data = await response.json();
     setTurnos(data);
   };
@@ -35,7 +35,7 @@ export default function SalaDetalle() {
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
   const fetchOcupados = async () => {
     const response = await fetch(
-      `http://10.0.2.2:5000/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
+      `http://localhost:5000/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
     );
     const data = await response.json();
 
@@ -79,7 +79,7 @@ export default function SalaDetalle() {
     setLoadingReserva(true);
 
     try {
-      const response = await fetch("http://10.0.2.2:5000/reservas", {
+      const response = await fetch("http://localhost:5000/reservas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

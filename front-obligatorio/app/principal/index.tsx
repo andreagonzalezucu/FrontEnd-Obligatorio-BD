@@ -17,7 +17,7 @@ export default function Principal() {
 
   const fetchEdificios = async () => {
     try {
-      const response = await fetch("http://10.0.2.2:5000/edificios"); 
+      const response = await fetch("http://localhost:5000/edificios"); 
       const data = await response.json();
 
       if (!response.ok) {

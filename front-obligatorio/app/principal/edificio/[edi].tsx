@@ -20,7 +20,7 @@ export default function EdificioDetail() {
 
   const fetchSalas = async () => {
     try {
-      const response = await fetch("http://10.0.2.2:5000/salas");
+      const response = await fetch("http://localhost:5000/salas");
       const data: sala[] = await response.json();
 
       if (!response.ok) {
