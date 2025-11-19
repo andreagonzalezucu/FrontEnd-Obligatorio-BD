@@ -6,7 +6,7 @@ import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView
 type sala={
     nombre_sala: string,
     id_sala: number,
-    edificio:string,
+    id_edificio:number,
     capacidad:number,
     tipo_sala:string
 }
@@ -20,7 +20,7 @@ export default function EdificioDetail() {
 
   const fetchSalas = async () => {
     try {
-      const response = await fetch("http://10.0.2.2:5000/salas");
+      const response = await fetch("http://localhost:5000/salas");
       const data: sala[] = await response.json();
 
       if (!response.ok) {
@@ -30,7 +30,7 @@ export default function EdificioDetail() {
 
       // Filtrar las salas por edificio elegido
       const filtradas = data.filter(
-        (s:sala) => s.edificio?.toLowerCase() === String(edi).toLowerCase()
+        (s:sala) => s.id_edificio === Number(edi)
       );
 
       setSalas(filtradas);

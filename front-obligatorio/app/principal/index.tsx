@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 
 type edificio={
@@ -17,7 +17,7 @@ export default function Principal() {
 
   const fetchEdificios = async () => {
     try {
-      const response = await fetch("http://10.0.2.2:5000/edificios"); 
+      const response = await fetch("http://localhost:5000/edificios"); 
       const data = await response.json();
 
       if (!response.ok) {
@@ -58,10 +58,12 @@ export default function Principal() {
       <Text style={styles.title}>Edificios</Text>
 
       {edificios.map((e, index) => (
-        <TouchableOpacity key={index} style={styles.button} onPress={() => router.push({
-        pathname: "/principal/edificio/[edi]",
-        params: { edi: String(e.id_edificio) }
-      })}>
+        <TouchableOpacity key={index} style={styles.button} onPress={() => {
+          Keyboard.dismiss();
+          router.push({
+            pathname: "/principal/edificio/[edi]",
+            params: { edi: String(e.id_edificio) }
+      })}}>
           <Text style={styles.buttonText}>{e.nombre_edificio}</Text>
         </TouchableOpacity>
       ))}

@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform } from 'react-native';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackground, ActivityIndicator, Platform } from 'react-native';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,8 +11,8 @@ export default function Login() {
 
   const BASE_URL =
   Platform.OS === "android"
-    ? "http://10.0.2.2:5000"
-    : "http://192.168.102.2:5000"; //poner ip propia
+    ? "http://localhost:5000"
+    : "http://192.168.56.2:5000"; //poner ip propia
 
   const handleLogin = async () => {
     setError('');
@@ -55,7 +54,7 @@ export default function Login() {
 
     } catch (err) {
       setLoading(false);
-      setError("No se pudo conectar con el servidor");
+      setError("No se pudo conectar con el servidor", err);
     }
   };
 
