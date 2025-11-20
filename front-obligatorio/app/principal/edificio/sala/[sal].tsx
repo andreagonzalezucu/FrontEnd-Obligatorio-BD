@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import DateSelector from "@/components/DateSelector";
 import CalendarPicker from "react-native-calendar-picker";
 
 const API = "http://127.0.0.1:5000"; 
@@ -109,24 +108,24 @@ export default function SalaDetalle() {
       Alert.alert("Error", "Debe seleccionar un horario");
       return;
     }
-    
-    setLoadingReserva(true);
-    if(turnEle!==0){
-      try {
-        const response = await fetch(`${API}/reservas`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_sala: idSalaNumber,
-            fecha: dia,
-            id_turno: turnEle,
-            estado: "activa",
-            participantes
-          })
-        });
 
-        const data = await response.json();
-        setLoadingReserva(false);
+    setLoadingReserva(true);
+
+    try {
+      const response = await fetch(`${API}/reservas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_sala: idSalaNumber,
+          fecha: dia,
+          id_turno: turnEle,
+          estado: "activa",
+          participantes
+        })
+      });
+
+      const data = await response.json();
+      setLoadingReserva(false);
 
       if (response.ok) {
         Alert.alert("Éxito", "Reserva creada correctamente");
@@ -134,21 +133,22 @@ export default function SalaDetalle() {
       } else {
         Alert.alert("Error", data.mensaje || "No se pudo crear la reserva");
       }
+
     } catch (err) {
       setLoadingReserva(false);
       Alert.alert("Error", "Fallo de conexión con el servidor");
     }
-  };
+};
 
-    if (loading || !salaInfo) {
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#1e3a8a" />
-        </View>
-      );
-    }
-    
-  }
+// =========Loading==============
+if (loading || !salaInfo) {
+  return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color="#1e3a8a" />
+    </View>
+  );
+}
+
 
   const guardarTurno=(turn: number)=>{
     setTurnEle(turn);
@@ -164,13 +164,13 @@ export default function SalaDetalle() {
       {/* FECHA */}
       <View style={{ marginTop: 20 }}>
         <Text style={styles.section}>Seleccionar fecha</Text>
+
         <View style={styles.calendarContainer}>
           <CalendarPicker
             onDateChange={(date: any) => {
               const formatted = date.format("YYYY-MM-DD");
               setDia(formatted);
             }}
-            selectedStartDate={dia}
             weekdays={['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']}
             months={[
               'Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -183,6 +183,10 @@ export default function SalaDetalle() {
             selectedDayTextColor="#fff"
           />
         </View>
+
+        {dia !== "" && (
+        <Text style={styles.selectedDate}>Fecha seleccionada: {dia}</Text>
+      )}
       </View>
 
 
@@ -238,8 +242,10 @@ export default function SalaDetalle() {
 
       {loadingReserva && <ActivityIndicator size="large" color="#1e3a8a" />}
 
-      <TouchableOpacity onPress={()=>crearReserva()}>
-        <Text>Confirmar Reserva</Text>
+      <TouchableOpacity onPress={crearReserva} style={{ marginTop: 20 }}>
+        <Text style={{ fontSize: 18, fontWeight: "bold", textAlign: "center" }}>
+          Confirmar Reserva
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -297,7 +303,13 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     marginTop: 10,
-  }
+  },
+  selectedDate: {
+    marginTop: 15,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 
 
 });
