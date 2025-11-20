@@ -105,7 +105,7 @@ export default function SalaDetalle() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id_sala: Number(sal),
+            id_sala: idSalaNumber,
             fecha: día,
             id_turno: turnEle,
             estado: "activa",
