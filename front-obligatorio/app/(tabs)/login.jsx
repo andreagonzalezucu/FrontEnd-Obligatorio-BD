@@ -47,7 +47,7 @@ export default function Login() {
       setLoading(false);
 
       if (response.ok) {
-        await AsyncStorage.setItem("user_ci", String(data.ci));
+        await AsyncStorage.setItem("user_ci", String(data.usuario.ci));
         Alert.alert("Bienvenido", data.mensaje);
         router.replace("/principal");
       } else {

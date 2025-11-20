@@ -4,18 +4,16 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: "blue" }}>
-      
+
       <Tabs.Screen
         name="login"
-        options={{
-          href: null, 
-        }}
+        options={{ href: null }}
       />
 
       <Tabs.Screen
-        name="principal/index"
+        name="inicio"
         options={{
-          title: "Home",
+          title: "Inicio",
           tabBarIcon: ({ color }) => (
             <FontAwesome name="home" size={26} color={color} />
           ),
@@ -23,11 +21,11 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="principal/misReservas"
+        name="misReservas"
         options={{
-          title: "Mis reservas e Invitaciones",
+          title: "Mis reservas",
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="star" size={26} color={color} />
+            <FontAwesome name="calendar" size={26} color={color} />
           ),
         }}
       />

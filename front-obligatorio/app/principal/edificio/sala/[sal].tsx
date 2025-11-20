@@ -4,8 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
 
 
-const API = "http://127.0.0.1:5000"; 
-
+const API = "http://localhost:5000"; 
 type Sala={
     nombre_sala: string,
     id_sala: number,
@@ -33,6 +32,8 @@ export default function SalaDetalle() {
   const [loadingReserva, setLoadingReserva] = useState(false);
 
   const idSalaNumber = Number(sal);
+  const [participantesPermitidos, setParticipantesPermitidos] = useState<any[]>([]);
+
 
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
@@ -75,11 +76,35 @@ export default function SalaDetalle() {
     setOcupados(ocupadas);
   };
 
-  //Cargar datos iniciales
+  
+  // ========= 4. Obtener los participantes compatibles con el usuario para invitar a la sala =========
+  const fetchParticipantesPermitidos = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/participantes-permitidos?id_sala=${idSalaNumber}`
+      );
+      const data = await res.json();
+
+      // Eliminar duplicados por CI
+      const unicos = Array.from(
+        new Map(data.map((p: { ci: any; }) => [p.ci, p])).values()
+      );
+
+      setParticipantesPermitidos(unicos);
+    } catch (error) {
+      console.error("Error cargando participantes permitidos", error);
+    }
+  };
+
+
+
   useEffect(() => {
     const load = async () => {
       await fetchSala();
       await fetchTurnos();
+      if (participantesPermitidos.length === 0) {
+        await fetchParticipantesPermitidos();
+      }
       setLoading(false);
     };
     load();
@@ -216,27 +241,31 @@ if (loading || !salaInfo) {
       })}
 
       {/* PARTICIPANTES */}
-      <Text style={styles.section}>Participantes (CIs)</Text>
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, { flex: 1 }]}
-          placeholder="CI participante"
-          value={ciInput}
-          onChangeText={setCiInput}
-        />
-        <TouchableOpacity style={styles.btnAdd} onPress={agregarParticipante}>
-          <Text style={{ color: "#fff" }}>Agregar</Text>
+
+      <Text style={styles.section}>Seleccionar participantes</Text>
+
+      {participantesPermitidos.map((p) => (
+        <TouchableOpacity
+          key={p.ci}
+          style={styles.participante}
+          onPress={() =>
+            setParticipantes((prev) =>
+              prev.includes(p.ci) ? prev : [...prev, p.ci]
+            )
+          }
+        >
+          <Text>{p.nombre} {p.apellido} ({p.ci})</Text>
+        </TouchableOpacity>
+      ))}
+
+      {participantes.map((ci) => (
+      <View key={ci} style={styles.participante}>
+        <Text>{ci}</Text>
+        <TouchableOpacity onPress={() => eliminarParticipante(ci)}>
+          <Text style={{ color: "red" }}>X</Text>
         </TouchableOpacity>
       </View>
-
-      {participantes.map((p) => (
-        <View key={p} style={styles.participante}>
-          <Text>{p}</Text>
-          <TouchableOpacity onPress={() => eliminarParticipante(p)}>
-            <Text style={{ color: "red" }}>X</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+    ))}
 
       {loadingReserva && <ActivityIndicator size="large" color="#1e3a8a" />}
 

@@ -11,9 +11,7 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ title: 'Log In' }} />
-        <Stack.Screen name="principal/index" options={{ title: 'Reserve su sala' }} />
-        <Stack.Screen name="principal/edificio/[edi]" options={{ title: 'Edificio' }} />
-      
+        <Stack.Screen name="principal/index" options={{ title: 'Reserve su sala' }} />      
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
