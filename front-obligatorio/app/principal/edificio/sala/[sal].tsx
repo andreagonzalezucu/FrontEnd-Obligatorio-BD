@@ -31,7 +31,7 @@ export default function SalaDetalle() {
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
     try{
-      const response = await fetch(`${API}//edificios/${idSalaNumber}`)
+      const response = await fetch(`${API}/salas/${idSalaNumber}`)
       const data: Sala = await response.json()
 
       if (!response.ok) {
@@ -169,7 +169,9 @@ export default function SalaDetalle() {
             key={t.id_turno}
             style={[styles.turno, ocupado && styles.turnoOcupado]}
             disabled={ocupado}
-            onPress={() => guardarTurno(t.id_turno)}
+            onPress={() => 
+              guardarTurno(t.id_turno)
+            }
           >
             <Text style={styles.turnoText}>
               {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
