@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 
-type sala={
+type Sala={
     nombre_sala: string,
     id_sala: number,
     id_edificio:number,
@@ -11,17 +11,47 @@ type sala={
     tipo_sala:string
 }
 
+type Edificio = {
+  id_edificio: number;
+  nombre_edificio: string;
+};
+
+const API = "http://127.0.0.1:5000";
+
 export default function EdificioDetail() {
-  const { edi } = useLocalSearchParams();  // nombre del edificio
-  const [salas, setSalas] = useState<sala[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { edi } = useLocalSearchParams<{ edi: string }>();
+  const [salas, setSalas] = useState<Sala[]>([]);
+  const [edificio, setEdificio] = useState<Edificio | null>(null);
+
+  const [loadingEdificio, setLoadingEdificio] = useState(true);
+  const [loadingSalas, setLoadingSalas] = useState(true);
   const [error, setError] = useState("");
+
   const router= useRouter();
+  const idEdificioNum = Number(edi);
+
+  const fetchEdificio = async () => {
+    try{
+      const response = await fetch(`${API}//edificios/${idEdificioNum}`)
+      const data: Edificio = await response.json()
+
+      if (!response.ok) {
+        setError("No se pudo cargar info del edificio");
+        return;
+      }
+
+      setEdificio(data)
+    } catch (err) {
+      setError("Error al conectar con el servidor");
+    } finally {
+      setLoadingEdificio(false);
+    }
+  }
 
   const fetchSalas = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/salas");
-      const data: sala[] = await response.json();
+      const response = await fetch(`${API}//salas`);
+      const data: Sala[] = await response.json();
 
       if (!response.ok) {
         setError("No se pudieron cargar las salas");
@@ -30,22 +60,23 @@ export default function EdificioDetail() {
 
       // Filtrar las salas por edificio elegido
       const filtradas = data.filter(
-        (s:sala) => s.id_edificio === Number(edi)
+        (s:Sala) => s.id_edificio === idEdificioNum
       );
 
       setSalas(filtradas);
     } catch (err) {
       setError("Error al conectar con el servidor");
     } finally {
-      setLoading(false);
+      setLoadingSalas(false);
     }
   };
 
   useEffect(() => {
+    fetchEdificio();
     fetchSalas();
-  }, []);
+  }, [edi]);
 
-  if (loading) {
+  if (loadingEdificio || loadingSalas) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#1e3a8a" />
@@ -63,17 +94,25 @@ export default function EdificioDetail() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Salas en {edi}</Text>
+      {edificio &&
+      <Text style={styles.title}>Salas en {edificio?.nombre_edificio}</Text>
+      }
 
       {salas.length === 0 && (
         <Text style={styles.noData}>Este edificio no tiene salas registradas.</Text>
       )}
 
-      {salas.map((sala, index) => (
-        <TouchableOpacity key={index} style={styles.button} onPress={() => router.push({
-        pathname: "/principal/edificio/sala/[sal]",
-        params: { sal: sala.id_sala }
-      })}>
+      {salas.map((sala) => (
+        <TouchableOpacity
+           key={sala.id_sala}
+           style={styles.button} 
+           onPress={() => 
+            router.push({
+                pathname: "/principal/edificio/sala/[sal]",
+                params: { sal: sala.id_sala }
+            })
+           }
+        >
           <Text style={styles.buttonText}>{sala.nombre_sala}</Text>
         </TouchableOpacity>
       ))}
