@@ -12,25 +12,6 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="principal/index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="home" size={26} color={color} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="principal/misReservas"
-        options={{
-          title: "Mis reservas e Invitaciones",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="star" size={26} color={color} />
-          ),
-        }}
-      />
 
     </Tabs>
   );

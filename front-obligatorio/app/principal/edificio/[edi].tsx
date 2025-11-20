@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Sala={
     nombre_sala: string,
@@ -16,7 +17,7 @@ type Edificio = {
   nombre_edificio: string;
 };
 
-const API = "http://127.0.0.1:5000";
+const API = "http://localhost:5000";
 
 export default function EdificioDetail() {
   const { edi } = useLocalSearchParams<{ edi: string }>();
@@ -32,7 +33,7 @@ export default function EdificioDetail() {
 
   const fetchEdificio = async () => {
     try{
-      const response = await fetch(`${API}//edificios/${idEdificioNum}`)
+      const response = await fetch(`${API}/edificios/${idEdificioNum}`)
       const data: Edificio = await response.json()
 
       if (!response.ok) {
@@ -50,7 +51,10 @@ export default function EdificioDetail() {
 
   const fetchSalas = async () => {
     try {
-      const response = await fetch(`${API}//salas`);
+      const ci = await AsyncStorage.getItem("user_ci");
+
+      const response = await fetch(`${API}/salas-permitidas?ci=${ci}&id_edificio=${idEdificioNum}`);
+
       const data: Sala[] = await response.json();
 
       if (!response.ok) {
