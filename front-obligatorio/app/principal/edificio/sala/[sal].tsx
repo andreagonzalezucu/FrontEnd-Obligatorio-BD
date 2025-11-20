@@ -93,33 +93,34 @@ export default function SalaDetalle() {
   };
 
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
-  const fetchOcupados = async () => {
-    if (!dia) return;
+  const fetchOcupados = async (fecha: string) => {
+    if (!fecha) return;
 
-    try{
+    try {
       const response = await fetch(
-        `${API}/reservas/detalladas?fecha_desde=${dia}&fecha_hasta=${dia}`
+        `${API}/reservas/detalladas?fecha_desde=${fecha}&fecha_hasta=${fecha}`
       );
       const data = await response.json();
 
-      // Filtrar solo las de esta sala
-      const ocupadas = data
+      // Filtrar solo las de esta sala y activas
+      const ocupadasIds = data
         .filter((r: any) => r.sala?.id_sala === idSalaNumber && r.estado === "activa")
-        .map((r: any) => Number(r.id_turno));
+        .map((r: any) => r.id_turno);
 
-      setOcupados(ocupadas);
-
-    }catch (error) {
-    console.error("Error al cargar reservas ocupadas:", error);
-    setOcupados([]);
+      setOcupados(ocupadasIds);
+    } catch (error) {
+      console.error("Error al cargar reservas ocupadas:", error);
+      setOcupados([]);
     }
   };
 
+  // ======== actualizar ocupados cada vez que cambia fecha o sala ========
   useEffect(() => {
     if (salaInfo && dia) {
-      fetchOcupados();
+      fetchOcupados(dia);
     }
   }, [salaInfo, dia]);
+
 
   
   // ========= 4. Obtener los participantes compatibles con el usuario para invitar a la sala =========
