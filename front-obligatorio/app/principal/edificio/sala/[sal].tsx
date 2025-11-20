@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 const API = "http://127.0.0.1:5000"; 
+
 type Sala={
     nombre_sala: string,
     id_sala: number,
@@ -10,6 +11,7 @@ type Sala={
     capacidad:number,
     tipo_sala:string
 }
+
 export default function SalaDetalle() {
   const { sal } = useLocalSearchParams(); // id_sala
   const router = useRouter();
@@ -20,10 +22,12 @@ export default function SalaDetalle() {
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [turnEle, setTurnEle] = useState(0);
 
   const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
+
   const [loadingReserva, setLoadingReserva] = useState(false);
 
   const idSalaNumber = Number(sal);
@@ -69,6 +73,7 @@ export default function SalaDetalle() {
     setOcupados(ocupadas);
   };
 
+  //Cargar datos iniciales
   useEffect(() => {
     const load = async () => {
       await fetchSala();
@@ -98,6 +103,11 @@ export default function SalaDetalle() {
 
   // ========= 4. Crear reserva =========
   const crearReserva = async () => {
+    if (!turnEle) {
+      Alert.alert("Error", "Debe seleccionar un horario");
+      return;
+    }
+    
     setLoadingReserva(true);
     if(turnEle!==0){
       try {
