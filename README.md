@@ -19,7 +19,7 @@ El sistema implementado permite:
 + Controlar automáticamente reglas de uso (horarios, capacidades, restricciones diarias y semanales)
 + Registrar asistencia de participantes por reserva
 + Generar sanciones automáticas cuando se incumplen determinadas condiciones de uso
-+ Proveer endpoint REST para su consumo desde un cliente móvil o web.
++ Proveer un API REST para ser consumido por un cliente móvil o web
 
 ### Modelado y Reglas del Sistema
 El sistema implementa las reglas definidas en la consigna:
@@ -36,8 +36,41 @@ El sistema implementa las reglas definidas en la consigna:
 
 ## 📁 Estructura del Proyecto Frontend
 ```
-
+FRONTEND-OBLIGATORIO-BD/
+└── front-obligatorio/
+    ├── .expo/
+    ├── .vscode/
+    ├── app/
+    │   ├── (tabs)/
+    │   │   ├── _layout.jsx
+    │   │   └── login.jsx
+    │   │
+    │   ├── principal/
+    │   │   ├── edificio/
+    │   │   │   ├── sala/
+    │   │   │   │   └── [sal].tsx
+    │   │   │   └── [edi].tsx
+    │   │   │
+    │   │   ├── _layout.tsx
+    │   │   ├── index.tsx
+    │   │   └── misReservas.tsx
+    │   │
+    │   ├── _layout.tsx
+    │   └── index.tsx
+    │
+    ├── assets/
+    ├── node_modules/
+    │
+    ├── .gitignore
+    ├── app.json
+    ├── eslint.config.js
+    ├── expo-env.d.ts
+    ├── package.json
+    ├── package-lock.json
+    ├── README.md
+    └── tsconfig.json
 ```
+
 ---
 
 ## 🛠️ Tecnologías Utilizadas
@@ -45,19 +78,18 @@ El sistema implementa las reglas definidas en la consigna:
 ### Frontend
 + React Native
 + Expo
-+ JavaScript
++ JavaScript / TypeScript
++ Expo Router para la navegación
++ Fetch API para consumo del backend REST
 
 
----
-## Variables de Entorno (.env)
-
-```
-```
 ---
 
 ## 🛠 Instalación y Ejecución
 
 Seguir los comandos:
+
+Desde la ruta `.\FrontEnd-Obligatorio-BD\front-obligatorio`, en el cmd ejecutar:
 
 1. Para instalar dependencias necesarias 
 ```
@@ -70,19 +102,55 @@ npm install
 npx expo start
 ```
 
+Se podrá ejecutar la app desde
++ Expo Go (Android / iOS)
++ Emulador Android
++ Browser Web
+
+#### ⚠️IMPORTANTE: Asegurarse de tener en ejecución la parte de backend (Ver repositorio https://github.com/belenkanas/BDI-Obligatorio---V.Blanco-A.Gonzalez-B.Kanas.git )
 --- 
 
 ## 📊 Módulos Disponibles
 
-A continuación se detallan todos los endpoints expuestos por la API REST, organizados por módulo, incluyendo ruta, método HTTP y descripción.
+El frontend implementa los siguientes flujos principales:
 
+### 🔐 Autenticación
 
++ Inicio de sesión de usuarios registrados
++ Validación mediante backend
+
+### 🏢 Gestión de Edificios y Salas
+
++ Listado de edificios disponibles
++ Selección de salas según edificio
++ Visualización de información de la sala
+
+### 📅 Reservas
+
++ Consulta de disponibilidad
++ Creación de reservas
++ Cancelación de reservas
++ Lógica en base a reglas del sistema (siempre controlada por el backend)
+
+### 📘 Mis Reservas
+
++ Listado de reservas activas
++ Detalle de cada reserva
++ Reglas aplicadas (límite diario/semanal)
+
+### ✔️ Asistencias
+
++ Registro de asistencia por reserva
++ Validación de participantes
++ Visualización de estado de asistencia
+---
 
 ## 🧩 Entregables Incluidos
   
-- Instructivo completo para correr la aplicación de forma local 
-- Documentación formal del proyecto + Bitácora
--  [Link a Workspace de Postman](https://mariabelenkanas.postman.co/workspace/ca3bb8cf-33a5-41fe-82f6-3788387c0468) 
+- Instructivo completo para correr la aplicación de forma local
+- Documentación formal del proyecto
+- Bitácora del proceso de desarrollo
+- Scripts SQL de creación e inserción (en el repositorio backend)
 
 
 ---

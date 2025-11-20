@@ -2,33 +2,54 @@ import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+const API = "http://127.0.0.1:5000"; 
+type Sala={
+    nombre_sala: string,
+    id_sala: number,
+    id_edificio:number,
+    capacidad:number,
+    tipo_sala:string
+}
 export default function SalaDetalle() {
   const { sal } = useLocalSearchParams(); // id_sala
   const router = useRouter();
 
-  const [salaInfo, setSalaInfo] = useState<any>(null);
+  const [salaInfo, setSalaInfo] = useState<Sala | null>(null);
   const [turnos, setTurnos] = useState<any[]>([]);
   const [día, setDía] = useState<string>(new Date().toISOString().split("T")[0]); // yyyy-mm-dd
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [turnEle, setTurnEle] = useState(0);
 
   const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
   const [loadingReserva, setLoadingReserva] = useState(false);
 
+  const idSalaNumber = Number(sal);
+
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
-    const response = await fetch(`http://127.0.0.1:5000/salas`);
-    const data = await response.json();
+    try{
+      const response = await fetch(`${API}//edificios/${idSalaNumber}`)
+      const data: Sala = await response.json()
 
-    const sala = data.find((s: any) => s.id_sala === sal);
-    setSalaInfo(sala);
-  };
+      if (!response.ok) {
+        setError("No se pudo cargar info de la sala");
+        return;
+      }
+
+      setSalaInfo(data)
+    } catch (err) {
+      setError("Error al conectar con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // ========= 2. Obtener turnos =========
   const fetchTurnos = async () => {
-    const response = await fetch("http://127.0.0.1:5000/turnos");
+    const response = await fetch(`${API}/turnos`);
     const data = await response.json();
     setTurnos(data);
   };
@@ -36,7 +57,7 @@ export default function SalaDetalle() {
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
   const fetchOcupados = async () => {
     const response = await fetch(
-      `http://127.0.0.1:5000/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
+      `${API}/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
     );
     const data = await response.json();
 
@@ -80,11 +101,11 @@ export default function SalaDetalle() {
     setLoadingReserva(true);
     if(turnEle!==0){
       try {
-        const response = await fetch("http://127.0.0.1:5000/reservas", {
+        const response = await fetch(`${API}/reservas`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id_sala: Number(sal),
+            id_sala: idSalaNumber,
             fecha: día,
             id_turno: turnEle,
             estado: "activa",
@@ -124,7 +145,7 @@ export default function SalaDetalle() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{salaInfo?.nombre_sala}</Text>
-      <Text style={styles.subtitle}>Edificio: {salaInfo?.nombre_edificio}</Text>
+      <Text style={styles.subtitle}>Edificio: {salaInfo?.nombre_sala}</Text>
       <Text style={styles.subtitle}>Capacidad: {salaInfo?.capacidad}</Text>
       <Text style={styles.subtitle}>Tipo: {salaInfo?.tipo_sala}</Text>
 
