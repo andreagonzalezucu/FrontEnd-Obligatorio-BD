@@ -1,59 +1,48 @@
-import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import CalendarPicker from "react-native-calendar-picker";
 
-type DateSelectorProps = {
-  onDateSelected?: (date: string) => void;
-};
+interface DateSelectorProps {
+  onDateSelected: (date: string) => void;
+}
 
 export default function DateSelector({ onDateSelected }: DateSelectorProps) {
-  const [date, setDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
-
-  const onChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowPicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-      const formatted = selectedDate.toISOString().split("T")[0];
-      onDateSelected?.(formatted);  // <- ENVÍA YYYY-MM-DD al padre
-    }
-  };
-
-  const formatDate = (d: Date) => {
-    return d.toISOString().split("T")[0];
+  const handleDateChange = (date: any) => {
+    if (!date) return;
+    // convertimos a string YYYY-MM-DD
+    const formatted = date.format("YYYY-MM-DD");
+    onDateSelected(formatted);
   };
 
   return (
-    <View>
-      <Text style={styles.label}>Fecha</Text>
-
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowPicker(true)}
-      >
-        <Text>{formatDate(date)}</Text>
-      </TouchableOpacity>
-
-      {showPicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="calendar"
-          onChange={onChange}
-        />
-      )}
+    <View style={styles.container}>
+      <CalendarPicker
+        onDateChange={handleDateChange}
+        weekdays={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
+        months={[
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Setiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre"
+        ]}
+        todayBackgroundColor="#e6ffe6"
+        selectedDayColor="#0066cc"
+        selectedDayTextColor="#fff"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: 16,
-    marginBottom: 5
+  container: {
+    margin: 10,
   },
-  input: {
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 8
-  }
 });

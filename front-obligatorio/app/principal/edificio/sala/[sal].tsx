@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import DateSelector from "@/components/DateSelector";
-
-
+import CalendarPicker from "react-native-calendar-picker";
 
 const API = "http://127.0.0.1:5000"; 
 
@@ -163,7 +162,28 @@ export default function SalaDetalle() {
       <Text style={styles.subtitle}>Tipo: {salaInfo?.tipo_sala}</Text>
 
       {/* FECHA */}
-      <DateSelector onDateSelected={setDia} />
+      <View style={{ marginTop: 20 }}>
+        <Text style={styles.section}>Seleccionar fecha</Text>
+        <View style={styles.calendarContainer}>
+          <CalendarPicker
+            onDateChange={(date: any) => {
+              const formatted = date.format("YYYY-MM-DD");
+              setDia(formatted);
+            }}
+            selectedStartDate={dia}
+            weekdays={['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']}
+            months={[
+              'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+              'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+            ]}
+            previousTitle="Anterior"
+            nextTitle="Siguiente"
+            todayBackgroundColor="#dbeafe"
+            selectedDayColor="#1e3a8a"
+            selectedDayTextColor="#fff"
+          />
+        </View>
+      </View>
 
 
       {/* LISTA DE TURNOS */}
@@ -271,6 +291,13 @@ const styles = StyleSheet.create({
   },
   turnoSeleccionado: {
     backgroundColor: "#5b848cff",
+  },
+    calendarContainer: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 10,
   }
+
 
 });
