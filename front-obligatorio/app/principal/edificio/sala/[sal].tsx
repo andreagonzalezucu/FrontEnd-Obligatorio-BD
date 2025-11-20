@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { Switch } from "react-native";
+import ModalConfirmarReserva from "@/components/ModalConfirmarReserva";
 
 const API = "http://localhost:5000"; 
 type Sala={
@@ -14,27 +15,56 @@ type Sala={
     tipo_sala:string
 }
 
+type ReservaExitosa = {
+  sala: string;
+  horario: string;
+  fecha: string;
+  participantes: string[];
+};
+
+
 export default function SalaDetalle() {
   const { sal } = useLocalSearchParams(); // id_sala
   const router = useRouter();
+  const idSalaNumber = Number(sal);
 
   const [salaInfo, setSalaInfo] = useState<Sala | null>(null);
   const [turnos, setTurnos] = useState<any[]>([]);
   const [dia, setDia] = useState<string>("");
+  
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [error, setError] = useState("");
-
   const [turnEle, setTurnEle] = useState(0);
 
   const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
+  const [participantesPermitidos, setParticipantesPermitidos] = useState<any[]>([]);
+
 
   const [loadingReserva, setLoadingReserva] = useState(false);
 
-  const idSalaNumber = Number(sal);
-  const [participantesPermitidos, setParticipantesPermitidos] = useState<any[]>([]);
+  const [incluirme, setIncluirme] = useState(true);
+  const [miCI, setMiCI] = useState<string | null>(null);
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [successData, setSuccessData] = useState<ReservaExitosa | null>(null);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
+  
 
+  // ----- Cargar CI del usuario y agregarlo por defecto -----
+  useEffect(() => {
+    const loadCI = async () => {
+      const ci = await AsyncStorage.getItem("user_ci");
+      setMiCI(ci);
+
+      if (ci) {
+        setParticipantes([ci]); // incluirme por defecto
+      }
+    };
+    loadCI();
+  }, []);
 
   // ========= 1. Obtener datos de la sala =========
   const fetchSala = async () => {
@@ -64,25 +94,39 @@ export default function SalaDetalle() {
 
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
   const fetchOcupados = async () => {
-    const response = await fetch(
-      `${API}/reservas/detalladas?fecha_desde=${dia}&fecha_hasta=${dia}`
-    );
-    const data = await response.json();
+    if (!dia) return;
 
-    // Filtrar solo las de esta sala
-    const ocupadas = data
-      .filter((r: any) => r.sala?.nombre_sala === salaInfo?.nombre_sala)
-      .map((r: any) => r.turno.hora_inicio); // luego comparo por hora
+    try{
+      const response = await fetch(
+        `${API}/reservas/detalladas?fecha_desde=${dia}&fecha_hasta=${dia}`
+      );
+      const data = await response.json();
 
-    setOcupados(ocupadas);
+      // Filtrar solo las de esta sala
+      const ocupadas = data
+        .filter((r: any) => r.sala?.id_sala === idSalaNumber && r.estado === "activa")
+        .map((r: any) => Number(r.id_turno));
+
+      setOcupados(ocupadas);
+
+    }catch (error) {
+    console.error("Error al cargar reservas ocupadas:", error);
+    setOcupados([]);
+    }
   };
+
+  useEffect(() => {
+    if (salaInfo && dia) {
+      fetchOcupados();
+    }
+  }, [salaInfo, dia]);
 
   
   // ========= 4. Obtener los participantes compatibles con el usuario para invitar a la sala =========
   const fetchParticipantesPermitidos = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/participantes-permitidos?id_sala=${idSalaNumber}`
+        `${API}/participantes-permitidos?id_sala=${idSalaNumber}`
       );
       const data = await res.json();
 
@@ -111,13 +155,7 @@ export default function SalaDetalle() {
     load();
   }, []);
 
-  // Cargar turnos ocupados cuando cambia la fecha y ya tenemos salaInfo
-  useEffect(() => {
-    if (salaInfo) {
-      fetchOcupados();
-    }
-  }, [salaInfo, dia]);
-
+  
   // ========= AGREGAR PARTICIPANTES =========
   const agregarParticipante = () => {
     if (ciInput.trim() === "") return;
@@ -136,8 +174,18 @@ export default function SalaDetalle() {
       return;
     }
 
+    setModalVisible(true);
     setLoadingReserva(true);
+    setSuccessData(null);
+    setErrorModal(null);
 
+    // Ajustar lista de participantes según switch
+    const participantesFinales =
+      incluirme && miCI
+        ? Array.from(new Set([miCI, ...participantes]))
+        : participantes.filter((p) => p !== miCI);
+
+    
     try {
       const ci = await AsyncStorage.getItem("user_ci");
 
@@ -149,7 +197,7 @@ export default function SalaDetalle() {
           fecha: dia,
           id_turno: turnEle,
           estado: "activa",
-          participantes,
+          participantes: participantesFinales,
           ci_creador: ci
         })
       });
@@ -158,16 +206,26 @@ export default function SalaDetalle() {
       setLoadingReserva(false);
 
       if (response.ok) {
-        Alert.alert("Éxito", "Reserva creada correctamente");
-        router.back();
-      } else {
-        Alert.alert("Error", data.mensaje || "No se pudo crear la reserva");
-      }
+      // Obtener horario completo usando turnos
+      const turnoSeleccionado = turnos.find((t) => t.id_turno === turnEle);
+      const horario =
+        turnoSeleccionado
+          ? `${turnoSeleccionado.hora_inicio.slice(0, 5)} - ${turnoSeleccionado.hora_fin.slice(0, 5)}`
+          : "—";
 
-    } catch (err) {
-      setLoadingReserva(false);
-      Alert.alert("Error", "Fallo de conexión con el servidor");
-    }
+      setSuccessData({
+        sala: salaInfo?.nombre_sala || "—",
+        fecha: dia,
+        horario,
+        participantes: participantesFinales,
+      })
+      } else {
+        setErrorModal(data.mensaje || "No se pudo crear la reserva");
+      }
+      } catch (err) {
+        setLoadingReserva(false);
+        setErrorModal("Error de conexión con el servidor");
+      }
 };
 
 // =========Loading==============
@@ -218,23 +276,19 @@ if (loading || !salaInfo) {
 
 
       {/* LISTA DE TURNOS */}
-      <Text style={styles.section}>Horarios disponibles</Text>
-
       {turnos.map((t) => {
-        const ocupado = ocupados.includes(t.hora_inicio);
+        const ocupado = ocupados.includes(t.id_turno);
 
         return (
           <TouchableOpacity
             key={t.id_turno}
             style={[
-              styles.turno, 
+              styles.turno,
               ocupado && styles.turnoOcupado,
               turnEle === t.id_turno && styles.turnoSeleccionado,
             ]}
             disabled={ocupado}
-            onPress={() => 
-              guardarTurno(t.id_turno)
-            }
+            onPress={() => guardarTurno(t.id_turno)}
           >
             <Text style={styles.turnoText}>
               {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
@@ -244,6 +298,26 @@ if (loading || !salaInfo) {
         );
       })}
 
+
+      {/* ===== SWITCH INCLUIRME ===== */}
+      <View style={{ marginTop: 20, flexDirection: "row", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, marginRight: 10 }}>
+          ¿Querés incluirte en esta reserva?
+        </Text>
+
+        <Switch
+          value={incluirme}
+          onValueChange={(v) => {
+            setIncluirme(v);
+            if (v && miCI && !participantes.includes(miCI)) {
+              setParticipantes((prev) => [miCI, ...prev]);
+            } else if (!v && miCI) {
+              setParticipantes((prev) => prev.filter((p) => p !== miCI));
+            }
+          }}
+        />
+      </View>
+
       {/* PARTICIPANTES */}
 
       <Text style={styles.section}>Seleccionar participantes</Text>
@@ -251,7 +325,7 @@ if (loading || !salaInfo) {
       {participantesPermitidos.map((p) => (
         <TouchableOpacity
           key={p.ci}
-          style={styles.participante}
+          style={styles.participantePermitido}
           onPress={() =>
             setParticipantes((prev) =>
               prev.includes(p.ci) ? prev : [...prev, p.ci]
@@ -262,22 +336,54 @@ if (loading || !salaInfo) {
         </TouchableOpacity>
       ))}
 
+      {/*Lista de seleccionados */}
+      <Text style={styles.section}>Seleccionados</Text>
       {participantes.map((ci) => (
-      <View key={ci} style={styles.participante}>
-        <Text>{ci}</Text>
-        <TouchableOpacity onPress={() => eliminarParticipante(ci)}>
-          <Text style={{ color: "red" }}>X</Text>
+        <View key={ci} style={styles.participanteSeleccionado}>
+          <Text>
+            {ci} {miCI === ci ? "(vos)" : ""}
+          </Text>
+
+          {miCI !== ci && (
+            <TouchableOpacity
+              onPress={() =>
+                eliminarParticipante(ci)
+              }
+            >
+              <Text style={{ color: "red" }}>X</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+
+
+      {/* ===== CONFIRMAR ===== */}
+      {loadingReserva ? (
+        <ActivityIndicator size="large" color="#1e3a8a" />
+      ) : (
+        <TouchableOpacity onPress={crearReserva} style={{ marginTop: 20 }}>
+          <Text
+            style={{ fontSize: 18, fontWeight: "bold", textAlign: "center" }}
+          >
+            Confirmar Reserva
+          </Text>
         </TouchableOpacity>
-      </View>
-    ))}
+      )}
 
-      {loadingReserva && <ActivityIndicator size="large" color="#1e3a8a" />}
 
-      <TouchableOpacity onPress={crearReserva} style={{ marginTop: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: "bold", textAlign: "center" }}>
-          Confirmar Reserva
-        </Text>
-      </TouchableOpacity>
+      <ModalConfirmarReserva
+        visible={modalVisible}
+        loading={loadingReserva}
+        successData={successData}
+        errorMessage={errorModal}
+        onClose={() => {
+          setModalVisible(false);
+          if (successData) router.back();
+        }}
+      />
+
+
+
     </ScrollView>
   );
 }
@@ -341,6 +447,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-
-
+  participantePermitido: {
+  backgroundColor: "#d9e6ff",
+  padding: 10,
+  borderRadius: 10,
+  marginVertical: 4
+  },
+  participanteSeleccionado: {
+    backgroundColor: "#caffca",
+    padding: 10,
+    borderRadius: 10,
+    marginVertical: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
 });
