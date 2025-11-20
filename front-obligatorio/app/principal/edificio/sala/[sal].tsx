@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import DateSelector from "@/components/DateSelector";
+
+
 
 const API = "http://127.0.0.1:5000"; 
 
@@ -18,7 +21,7 @@ export default function SalaDetalle() {
 
   const [salaInfo, setSalaInfo] = useState<Sala | null>(null);
   const [turnos, setTurnos] = useState<any[]>([]);
-  const [día, setDía] = useState<string>(new Date().toISOString().split("T")[0]); // yyyy-mm-dd
+  const [dia, setDia] = useState<string>("");
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,7 +64,7 @@ export default function SalaDetalle() {
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
   const fetchOcupados = async () => {
     const response = await fetch(
-      `${API}/reservas/detalladas?fecha_desde=${día}&fecha_hasta=${día}`
+      `${API}/reservas/detalladas?fecha_desde=${dia}&fecha_hasta=${dia}`
     );
     const data = await response.json();
 
@@ -88,7 +91,7 @@ export default function SalaDetalle() {
     if (salaInfo) {
       fetchOcupados();
     }
-  }, [salaInfo, día]);
+  }, [salaInfo, dia]);
 
   // ========= AGREGAR PARTICIPANTES =========
   const agregarParticipante = () => {
@@ -116,7 +119,7 @@ export default function SalaDetalle() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id_sala: idSalaNumber,
-            fecha: día,
+            fecha: dia,
             id_turno: turnEle,
             estado: "activa",
             participantes
@@ -160,13 +163,8 @@ export default function SalaDetalle() {
       <Text style={styles.subtitle}>Tipo: {salaInfo?.tipo_sala}</Text>
 
       {/* FECHA */}
-      <Text style={styles.section}>Fecha</Text>
-      <TextInput
-        style={styles.input}
-        value={día}
-        onChangeText={setDía}
-        placeholder="YYYY-MM-DD"
-      />
+      <DateSelector onDateSelected={setDia} />
+
 
       {/* LISTA DE TURNOS */}
       <Text style={styles.section}>Horarios disponibles</Text>
