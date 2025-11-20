@@ -23,7 +23,7 @@ export default function PrincipalHome() {
       </TouchableOpacity>
 
       <View style={styles.logOutContainer}>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/login")}>
+        <TouchableOpacity onPress={() => router.push("/login")}>
           <Text style={styles.logOutText}>Log out</Text>
         </TouchableOpacity>
       </View>

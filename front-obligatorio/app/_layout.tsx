@@ -9,9 +9,8 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ title: 'Log In' }} />
-        <Stack.Screen name="principal/index" options={{ title: 'Reserve su sala' }} />      
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />      
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

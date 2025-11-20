@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 const API = "http://localhost:5000"; 
@@ -138,6 +139,8 @@ export default function SalaDetalle() {
     setLoadingReserva(true);
 
     try {
+      const ci = await AsyncStorage.getItem("user_ci");
+
       const response = await fetch(`${API}/reservas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,7 +149,8 @@ export default function SalaDetalle() {
           fecha: dia,
           id_turno: turnEle,
           estado: "activa",
-          participantes
+          participantes,
+          ci_creador: ci
         })
       });
 
