@@ -25,7 +25,7 @@ export default function ModalConfirmarReserva({
 }: Props) {
   if (!visible) return null;
 
-  // 🔒 Normalización de participantes: siempre array, nunca undefined
+  // Normalización de participantes: siempre array, nunca undefined
   const participantesSeguros: string[] =
     Array.isArray(successData?.participantes)
       ? successData!.participantes

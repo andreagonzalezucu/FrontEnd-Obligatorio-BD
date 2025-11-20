@@ -36,7 +36,7 @@ export default function SalaDetalle() {
   const [loading, setLoading] = useState(true);
   
   const [error, setError] = useState("");
-  const [turnEle, setTurnEle] = useState(0);
+  const [turnEle, setTurnEle] = useState<number[]>([]);
 
   const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
@@ -52,6 +52,8 @@ export default function SalaDetalle() {
   const [successData, setSuccessData] = useState<ReservaExitosa | null>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
   
+  const hoy = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
 
   // ----- Cargar CI del usuario y agregarlo por defecto -----
   useEffect(() => {
@@ -170,8 +172,8 @@ export default function SalaDetalle() {
 
   // ========= 4. Crear reserva =========
   const crearReserva = async () => {
-    if (!turnEle) {
-      Alert.alert("Error", "Debe seleccionar un horario");
+    if (turnEle.length === 0) {
+      Alert.alert("Error", "Debes seleccionar al menos un horario.");
       return;
     }
 
@@ -180,54 +182,56 @@ export default function SalaDetalle() {
     setSuccessData(null);
     setErrorModal(null);
 
-    // Ajustar lista de participantes según switch
     const participantesFinales =
       incluirme && miCI
         ? Array.from(new Set([miCI, ...participantes]))
         : participantes.filter((p) => p !== miCI);
 
-    
     try {
       const ci = await AsyncStorage.getItem("user_ci");
+      const resultados: ReservaExitosa[] = [];
 
-      const response = await fetch(`${API}/reservas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_sala: idSalaNumber,
-          fecha: dia,
-          id_turno: turnEle,
-          estado: "activa",
-          participantes: participantesFinales,
-          ci_creador: ci
-        })
-      });
+      for (const turno of turnEle) {
+        const response = await fetch(`${API}/reservas`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_sala: idSalaNumber,
+            fecha: dia,
+            id_turno: turno,
+            estado: "activa",
+            participantes: participantesFinales,
+            ci_creador: ci,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
+
+        if (response.ok) {
+          const turnoInfo = turnos.find((t) => t.id_turno === turno);
+          const horario = turnoInfo
+            ? `${turnoInfo.hora_inicio.slice(0,5)} - ${turnoInfo.hora_fin.slice(0,5)}`
+            : "—";
+
+          resultados.push({
+            sala: salaInfo?.nombre_sala || "—",
+            fecha: dia,
+            horario,
+            participantes: participantesFinales,
+          });
+        } else {
+          setErrorModal((prev) => (prev ? prev + "\n" : "") + (data.mensaje || "Error en reserva"));
+        }
+      }
+
+      setSuccessData(resultados.length > 0 ? resultados[0] : null);
+    } catch (err) {
+      setErrorModal("Error de conexión con el servidor");
+    } finally {
       setLoadingReserva(false);
+    }
+  };
 
-      if (response.ok) {
-      // Obtener horario completo usando turnos
-      const turnoSeleccionado = turnos.find((t) => t.id_turno === turnEle);
-      const horario =
-        turnoSeleccionado
-          ? `${turnoSeleccionado.hora_inicio.slice(0, 5)} - ${turnoSeleccionado.hora_fin.slice(0, 5)}`
-          : "—";
-
-      setSuccessData({
-        sala: salaInfo?.nombre_sala || "—",
-        fecha: dia,
-        horario,
-        participantes: participantesFinales,
-      })
-      } else {
-        setErrorModal(data.mensaje || "No se pudo crear la reserva");
-      }
-      } catch (err) {
-        setLoadingReserva(false);
-        setErrorModal("Error de conexión con el servidor");
-      }
-};
 
 // =========Loading==============
 if (loading || !salaInfo) {
@@ -239,9 +243,20 @@ if (loading || !salaInfo) {
 }
 
 
-  const guardarTurno=(turn: number)=>{
-    setTurnEle(turn);
-  }
+  const guardarTurno = (turn: number) => {
+    setTurnEle((prev) => {
+      if (prev.includes(turn)) {
+        // si ya estaba seleccionado, lo deselecciona
+        return prev.filter((t) => t !== turn);
+      } else if (prev.length < 2) {
+        // permite agregar hasta 2
+        return [...prev, turn];
+      } else {
+        Alert.alert("Límite alcanzado", "Solo se pueden seleccionar hasta 2 turnos");
+        return prev;
+      }
+    });
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -256,12 +271,11 @@ if (loading || !salaInfo) {
 
         <View style={styles.calendarContainer}>
           <Calendar
-            onDayPress={(day) => {
-              setDia(day.dateString); // YYYY-MM-DD
-            }}
+            onDayPress={(day) => setDia(day.dateString)}
             markedDates={{
-              [dia]: { selected: true, selectedColor: "#1e3a8a", selectedTextColor: "#fff", },
+              [dia]: { selected: true, selectedColor: "#1e3a8a", selectedTextColor: "#fff" },
             }}
+            minDate={hoy}
             theme={{
               todayTextColor: "#1e3a8a",
               arrowColor: "#1e3a8a",
@@ -279,6 +293,7 @@ if (loading || !salaInfo) {
       {/* LISTA DE TURNOS */}
       {turnos.map((t) => {
         const ocupado = ocupados.includes(t.id_turno);
+        const seleccionado = turnEle.includes(t.id_turno);
 
         return (
           <TouchableOpacity
@@ -286,7 +301,7 @@ if (loading || !salaInfo) {
             style={[
               styles.turno,
               ocupado && styles.turnoOcupado,
-              turnEle === t.id_turno && styles.turnoSeleccionado,
+              seleccionado && styles.turnoSeleccionado,
             ]}
             disabled={ocupado}
             onPress={() => guardarTurno(t.id_turno)}
@@ -298,6 +313,7 @@ if (loading || !salaInfo) {
           </TouchableOpacity>
         );
       })}
+
 
 
       {/* ===== SWITCH INCLUIRME ===== */}
