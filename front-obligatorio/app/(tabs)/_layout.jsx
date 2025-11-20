@@ -7,13 +7,11 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="login"
-        options={{
-          href: null, 
-        }}
+        options={{ href: null }}
       />
 
       <Tabs.Screen
-        name="principal/index"
+        name="inicio"
         options={{
           title: "Inicio",
           tabBarIcon: ({ color }) => (
@@ -23,7 +21,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="principal/misReservas"
+        name="misReservas"
         options={{
           title: "Mis reservas",
           tabBarIcon: ({ color }) => (
