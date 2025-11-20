@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackground, ActivityIndicator, Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -46,6 +47,7 @@ export default function Login() {
       setLoading(false);
 
       if (response.ok) {
+        await AsyncStorage.setItem("user_ci", String(data.ci));
         Alert.alert("Bienvenido", data.mensaje);
         router.replace("/principal");
       } else {
