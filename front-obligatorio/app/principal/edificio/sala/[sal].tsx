@@ -167,7 +167,11 @@ export default function SalaDetalle() {
         return (
           <TouchableOpacity
             key={t.id_turno}
-            style={[styles.turno, ocupado && styles.turnoOcupado]}
+            style={[
+              styles.turno, 
+              ocupado && styles.turnoOcupado,
+              turnEle === t.id_turno && styles.turnoSeleccionado,
+            ]}
             disabled={ocupado}
             onPress={() => 
               guardarTurno(t.id_turno)
@@ -257,4 +261,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
+  turnoSeleccionado: {
+    backgroundColor: "#5b848cff",
+  }
+
 });
