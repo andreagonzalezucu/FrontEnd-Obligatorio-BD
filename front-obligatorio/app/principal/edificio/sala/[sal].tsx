@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import CalendarPicker from "react-native-calendar-picker";
+import { Calendar } from "react-native-calendars";
+
 
 const API = "http://127.0.0.1:5000"; 
 
@@ -166,23 +167,20 @@ if (loading || !salaInfo) {
         <Text style={styles.section}>Seleccionar fecha</Text>
 
         <View style={styles.calendarContainer}>
-          <CalendarPicker
-            onDateChange={(date: any) => {
-              const formatted = date.format("YYYY-MM-DD");
-              setDia(formatted);
+          <Calendar
+            onDayPress={(day) => {
+              setDia(day.dateString); // YYYY-MM-DD
             }}
-            weekdays={['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']}
-            months={[
-              'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-              'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
-            ]}
-            previousTitle="Anterior"
-            nextTitle="Siguiente"
-            todayBackgroundColor="#dbeafe"
-            selectedDayColor="#1e3a8a"
-            selectedDayTextColor="#fff"
+            markedDates={{
+              [dia]: { selected: true, selectedColor: "#1e3a8a", selectedTextColor: "#fff", },
+            }}
+            theme={{
+              todayTextColor: "#1e3a8a",
+              arrowColor: "#1e3a8a",
+            }}
           />
         </View>
+
 
         {dia !== "" && (
         <Text style={styles.selectedDate}>Fecha seleccionada: {dia}</Text>
