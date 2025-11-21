@@ -48,11 +48,15 @@ export default function Login() {
 
       if (response.ok) {
         await AsyncStorage.setItem("user_ci", String(data.usuario.ci));
+
+        if (data?.usuario?.rol) {
+          await AsyncStorage.setItem("user_rol", data.usuario.rol);
+        }
+
         Alert.alert("Bienvenido", data.mensaje);
         router.replace("/principal");
-      } else {
-        setError(data.mensaje || "Error de inicio de sesión");
       }
+
 
     } catch (err) {
       setLoading(false);

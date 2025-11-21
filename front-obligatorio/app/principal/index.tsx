@@ -1,8 +1,19 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 export default function PrincipalHome() {
   const router = useRouter();
+  const [rol, setRol] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cargarRol = async () => {
+      const r = await AsyncStorage.getItem("user_rol");
+      setRol(r);
+    };
+    cargarRol();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -22,19 +33,23 @@ export default function PrincipalHome() {
         <Text style={styles.buttonText}>Mis Reservas</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/principal/estadisticas")}
-      >
-        <Text style={styles.buttonText}>Estadísticas</Text>
-      </TouchableOpacity>
+      {rol === "admin" ? (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/principal/estadisticas")}
+        >
+          <Text style={styles.buttonText}>Estadísticas</Text>
+        </TouchableOpacity>
+      ):(<View />)}
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/principal/panelDeControl")}
-      >
-        <Text style={styles.buttonText}>Panel de control</Text>
-      </TouchableOpacity>
+      {rol === "admin" ? (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/principal/panelDeControl")}
+        >
+          <Text style={styles.buttonText}>Panel de control</Text>
+        </TouchableOpacity>
+      ): <View />}
 
       <View style={styles.logOutContainer}>
         <TouchableOpacity onPress={() => router.push("/login")}>
