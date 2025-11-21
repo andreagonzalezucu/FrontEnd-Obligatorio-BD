@@ -44,13 +44,14 @@ export default function SalaDetalle() {
   const [error, setError] = useState("");
   const [turnosSeleccionados, setTurnosSeleccionados] = useState<number[]>([]);
 
-  const [ciInput, setCiInput] = useState("");
-
   const [modalVisible, setModalVisible] = useState(false);
   const [successData, setSuccessData] = useState<ReservaExitosa | null>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
   
   const hoy = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const [buscarParticipante, setBuscarParticipante] = useState("");
+  const [dropdownVisible, setDropdownVisible] = useState(false);
 
 
   // ----- Cargar CI del usuario y agregarlo por defecto -----
@@ -243,15 +244,21 @@ export default function SalaDetalle() {
     }
   };
 
-
-// =========Loading==============
-if (loading || !salaInfo) {
-  return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" color="#1e3a8a" />
-    </View>
+  const participantesFiltrados = participantesPermitidos.filter((p) =>
+  `${p.nombre} ${p.apellido} ${p.ci}`
+    .toLowerCase()
+    .includes(buscarParticipante.toLowerCase())
   );
-}
+
+
+  // =========Loading==============
+  if (loading || !salaInfo) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1e3a8a" />
+      </View>
+    );
+  }
 
 
   return (
@@ -335,19 +342,52 @@ if (loading || !salaInfo) {
 
       <Text style={styles.section}>Seleccionar participantes</Text>
 
-      {participantesPermitidos.map((p) => (
-        <TouchableOpacity
-          key={p.ci}
-          style={styles.participantePermitido}
-          onPress={() =>
-            setParticipantes((prev) =>
-              prev.includes(p.ci) ? prev : [...prev, p.ci]
-            )
-          }
+      <TextInput style={styles.input}
+      placeholder="Buscar participante..."
+      value={buscarParticipante}
+      onFocus={() => setDropdownVisible(true)}
+      onChangeText={(text) => {
+        setBuscarParticipante(text);
+        setDropdownVisible(true);
+      }} />
+
+      {/* Dropdown */}
+      {dropdownVisible && buscarParticipante.length > 0 && (
+        <View
+          style={{
+            backgroundColor: "#fff",
+            borderWidth: 1,
+            borderColor: "#ccc",
+            borderRadius: 10,
+            maxHeight: 200,
+            marginTop: 5,
+          }}
         >
-          <Text>{p.nombre} {p.apellido} ({p.ci})</Text>
-        </TouchableOpacity>
-      ))}
+          <ScrollView>
+            {participantesFiltrados.map((p) => (
+              <TouchableOpacity
+                key={p.ci}
+                style={{
+                  padding: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#eee",
+                }}
+                onPress={() => {
+                  setParticipantes((prev) =>
+                    prev.includes(p.ci) ? prev : [...prev, p.ci]
+                  );
+                  setBuscarParticipante("");
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text>
+                  {p.nombre} {p.apellido} ({p.ci})
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/*Lista de seleccionados */}
       <Text style={styles.section}>Seleccionados</Text>

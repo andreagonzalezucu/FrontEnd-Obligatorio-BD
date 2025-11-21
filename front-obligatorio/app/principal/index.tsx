@@ -10,7 +10,7 @@ export default function PrincipalHome() {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push("/principal/edificio/index")}
+        onPress={() => router.push("/principal/edificio")}
       >
         <Text style={styles.buttonText}>Reservar</Text>
       </TouchableOpacity>
