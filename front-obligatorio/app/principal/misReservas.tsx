@@ -6,7 +6,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
-type reserva={
+type Reserva={
   id_reserva: number,
   id_sala: number,
   fecha: string
@@ -20,7 +20,7 @@ type reserva={
 }
 
 export default function MisReservas() {
-  const [reservas, setReservas] = useState<reserva[]>([]);
+  const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -60,6 +60,7 @@ export default function MisReservas() {
     cargarReservas();
   }, []);
 
+  
   const cancelarReserva = (id_reserva:number) => {
     Alert.alert(
       "Cancelar reserva",
