@@ -10,7 +10,7 @@ export default function PrincipalHome() {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push("/principal/edificio")}
+        onPress={() => router.push("/principal/edificio/index")}
       >
         <Text style={styles.buttonText}>Reservar</Text>
       </TouchableOpacity>
@@ -20,6 +20,13 @@ export default function PrincipalHome() {
         onPress={() => router.push("/principal/misReservas")}
       >
         <Text style={styles.buttonText}>Mis Reservas</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push("/principal/estadisticas")}
+      >
+        <Text style={styles.buttonText}>Estadísticas</Text>
       </TouchableOpacity>
 
       <View style={styles.logOutContainer}>

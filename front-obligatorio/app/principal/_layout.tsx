@@ -6,7 +6,8 @@ export default function PrincipalLayout() {
     <Stack screenOptions={{ title:"Inicio" }}>
       <Stack.Screen name="index" />       
       <Stack.Screen name="misReservas" /> 
-      <Stack.Screen name="edificio" />  
+      <Stack.Screen name="estadisticas" />
+      <Stack.Screen name="edificio" /> 
     </Stack>
   );
 }
