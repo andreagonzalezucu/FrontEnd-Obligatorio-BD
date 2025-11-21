@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Platform, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Switch } from "react-native";
 import ModalConfirmarReserva from "@/components/ModalConfirmarReserva";
 
-const API = "http://localhost:5000"; 
+const API =
+    Platform.OS === "android"
+      ? "http://10.0.2.2:5000"
+      : "http://localhost:5000";
+
 type Sala={
     nombre_sala: string,
     id_sala: number,
