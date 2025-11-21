@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Platform, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, TextInput, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar } from "react-native-calendars";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Switch } from "react-native";
 import ModalConfirmarReserva from "@/components/ModalConfirmarReserva";
 
-const API =
-    Platform.OS === "android"
-      ? "http://10.0.2.2:5000"
-      : "http://localhost:5000";
-
+const API = "http://localhost:5000"; 
 type Sala={
     nombre_sala: string,
     id_sala: number,
@@ -182,71 +178,75 @@ export default function SalaDetalle() {
 
   // ========= 4. Crear reserva =========
   const crearReserva = async () => {
-    if (turnosSeleccionados.length === 0) {
-      Alert.alert("Error", "Debes seleccionar al menos un horario.");
-      return;
-    }
+  if (turnosSeleccionados.length === 0) {
+    Alert.alert("Error", "Debes seleccionar al menos un horario.");
+    return;
+  }
 
-    setModalVisible(true);
-    setLoadingReserva(true);
-    setSuccessData(null);
-    setErrorModal(null);
+  setModalVisible(true);
+  setLoadingReserva(true);
+  setSuccessData(null);
+  setErrorModal(null);
 
-    const participantesFinales =
-      incluirme && miCI
-        ? Array.from(new Set([miCI, ...participantes]))
-        : participantes.filter((p) => p !== miCI);
+  const participantesFinales =
+    incluirme && miCI
+      ? Array.from(new Set([miCI, ...participantes]))
+      : participantes.filter((p) => p !== miCI);
 
+  try {
+    const ci = await AsyncStorage.getItem("user_ci");
+    let errorMostrado = null;
+    let reservaExitosa = null;
 
-    try {
-      const ci = await AsyncStorage.getItem("user_ci");
-      const resultados: ReservaExitosa[] = [];
+    for (const turno of turnosSeleccionados) {
+      const response = await fetch(`${API}/reservas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_sala: idSalaNumber,
+          fecha: dia,
+          id_turno: turno,
+          estado: "activa",
+          participantes: participantesFinales,
+          ci_creador: ci,
+        }),
+      });
 
-      for (const turno of turnosSeleccionados) {
-        const response = await fetch(`${API}/reservas`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_sala: idSalaNumber,
-            fecha: dia,
-            id_turno: turno,
-            estado: "activa",
-            participantes: participantesFinales,
-            ci_creador: ci,
-          }),
-        });
+      const data = await response.json();
 
-        const data = await response.json();
-
-        if (response.ok) {
-          const horariosSeleccionados: string[] = [];
-
-          for (const turno of turnosSeleccionados) {
-            const turnoInfo = turnos.find((t) => t.id_turno === turno);
-            const horario = turnoInfo
-              ? `${turnoInfo.hora_inicio.slice(0, 5)} - ${turnoInfo.hora_fin.slice(0, 5)}`
-              : "—";
-
-            horariosSeleccionados.push(horario);
-          resultados.push({
-            sala: salaInfo?.nombre_sala || "—",
-            fecha: dia,
-            horario: horariosSeleccionados,
-            participantes: participantesFinales,
-          });
-        }
-        } else {
-          setErrorModal((prev) => (prev ? prev + "\n" : "") + (data.mensaje || "Error en reserva"));
-        }
+      if (!response.ok) {
+        errorMostrado = data.mensaje || "Error en reserva";
+        break; // ❗ Cortamos el bucle para no tirar dos errores
       }
 
-      setSuccessData(resultados.length > 0 ? resultados[0] : null);
-    } catch (err) {
-      setErrorModal("Error de conexión con el servidor");
-    } finally {
-      setLoadingReserva(false);
+      // si llega acá fue exitosa
+      if (!reservaExitosa) {
+        const horariosSeleccionados = turnosSeleccionados.map((turnoSel) => {
+          const t = turnos.find((tt) => tt.id_turno === turnoSel);
+          return `${t.hora_inicio.slice(0, 5)} - ${t.hora_fin.slice(0, 5)}`;
+        });
+
+        reservaExitosa = {
+          sala: salaInfo?.nombre_sala || "—",
+          fecha: dia,
+          horario: horariosSeleccionados,
+          participantes: participantesFinales,
+        };
+      }
     }
-  };
+
+    if (errorMostrado) {
+      setErrorModal(errorMostrado);
+    } else {
+      setSuccessData(reservaExitosa);
+    }
+  } catch (err) {
+    setErrorModal("Error de conexión con el servidor");
+  } finally {
+    setLoadingReserva(false);
+  }
+};
+
 
   const participantesFiltrados = participantesPermitidos.filter((p) =>
   `${p.nombre} ${p.apellido} ${p.ci}`
@@ -298,28 +298,39 @@ export default function SalaDetalle() {
 
 
       {/* LISTA DE TURNOS */}
-      {turnos.map((t) => {
-        const ocupado = ocupados.includes(t.id_turno);
-        const seleccionado = turnosSeleccionados.includes(t.id_turno);
+      {turnos.filter((t) => {
+          if (dia !== hoy) return true;
 
-        return (
-          <TouchableOpacity
-            key={t.id_turno}
-            style={[
-              styles.turno,
-              ocupado && styles.turnoOcupado,
-              seleccionado && styles.turnoSeleccionado,
-            ]}
-            disabled={ocupado}
-            onPress={() => toggleTurno(t.id_turno)}
-          >
-            <Text style={styles.turnoText}>
-              {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
-            </Text>
-            {ocupado && <Text style={styles.turnoLabel}>OCUPADO</Text>}
-          </TouchableOpacity>
-        );
-      })}
+          const ahora = new Date();
+          const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+
+          const [hIni, mIni] = t.hora_inicio.split(":").map(Number);
+          const inicioTurnoMin = hIni * 60 + mIni;
+
+          return inicioTurnoMin >= horaActual; 
+        }).map((t) => {
+          const ocupado = ocupados.includes(t.id_turno);
+          const seleccionado = turnosSeleccionados.includes(t.id_turno);
+
+          return (
+            <TouchableOpacity
+              key={t.id_turno}
+              style={[
+                styles.turno,
+                ocupado && styles.turnoOcupado,
+                seleccionado && styles.turnoSeleccionado,
+              ]}
+              disabled={ocupado}
+              onPress={() => toggleTurno(t.id_turno)}
+            >
+              <Text style={styles.turnoText}>
+                {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
+              </Text>
+              {ocupado && <Text style={styles.turnoLabel}>OCUPADO</Text>}
+            </TouchableOpacity>
+          );
+        })}
+
 
 
 
@@ -435,7 +446,7 @@ export default function SalaDetalle() {
         errorMessage={errorModal}
         onClose={() => {
           setModalVisible(false);
-          if (successData) router.back();
+          if (successData) router.replace('/principal/misReservas')
         }}
       />
 

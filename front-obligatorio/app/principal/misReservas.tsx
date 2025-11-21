@@ -129,6 +129,43 @@ export default function MisReservas() {
   );
 };
 
+  async function marcarAsistencia(id_reserva: number) {
+    const ci = await AsyncStorage.getItem("user_ci");
+
+    const response = await fetch(
+      `${BASE_URL}/reservas/${id_reserva}/participantes/${ci}/asistencia`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asistencia: true }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      Alert.alert("Error", data.mensaje || "No se pudo registrar la asistencia.");
+      return;
+    }
+
+    Alert.alert("Asistencia registrada");
+    cargarReservas();
+  }
+
+  function estadoAsistencia(r: Reserva) {
+    const ahora = new Date();
+    const inicio = new Date(`${r.fecha}T${r.hora_inicio}`);
+    const fin = new Date(`${r.fecha}T${r.hora_fin}`);
+
+    if (r.asistencia === "1") return "asistio";
+    if (r.asistencia === "0") return "no_asistio";
+
+    if (ahora < inicio) return "antes";
+    if (ahora >= inicio && ahora <= fin) return "en_curso";
+
+    return "cerrado";
+  }
+
 
   if (loading) {
     return (
@@ -174,6 +211,47 @@ export default function MisReservas() {
               ? "Asistencia: PRESENTE"
               : "Asistencia: AUSENTE"}
           </Text>
+
+          <>
+          {(() => {
+            const estado = estadoAsistencia(r);
+
+            if (estado === "antes") {
+              return (
+                <Text style={{ marginTop: 10, color: "gray" }}>
+                  La asistencia se habilita al inicio del turno
+                </Text>
+              );
+            }
+
+            if (estado === "en_curso") {
+              return (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "green",
+                    padding: 12,
+                    borderRadius: 8,
+                    marginTop: 10
+                  }}
+                  onPress={() => marcarAsistencia(r.id_reserva)}
+                >
+                  <Text style={{ color: "white", textAlign: "center", fontWeight: "bold" }}>
+                    Marcar asistencia
+                  </Text>
+                </TouchableOpacity>
+              );
+            }
+
+            if (estado === "cerrado") {
+              return (
+                <Text style={{ marginTop: 10, color: "gray" }}>
+                  Ya pasó la hora de completar tu asistencia
+                </Text>
+              );
+            }
+          })()}
+        </>
+
 
           {r.estado === "activa" && (
             <TouchableOpacity
