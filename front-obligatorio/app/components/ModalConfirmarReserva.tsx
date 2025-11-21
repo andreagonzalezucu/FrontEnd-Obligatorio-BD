@@ -2,7 +2,7 @@ import { Modal, View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } fr
 
 type SuccessData = {
   sala: string;
-  horario: string;
+  horario: string[];
   fecha: string;
   participantes: string[];
 };
@@ -57,7 +57,9 @@ export default function ModalConfirmarReserva({
                 <Text style={styles.value}>{successData.fecha}</Text>
 
                 <Text style={styles.label}>Horario:</Text>
-                <Text style={styles.value}>{successData.horario}</Text>
+                {successData?.horario.map((h, i) => (
+                <Text key={i}>{h}</Text>
+                ))}
 
                 <Text style={styles.label}>Participantes:</Text>
                 {successData.participantes.length > 0 ? (

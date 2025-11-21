@@ -17,7 +17,7 @@ type Sala={
 
 type ReservaExitosa = {
   sala: string;
-  horario: string;
+  horario: string[];
   fecha: string;
   participantes: string[];
 };
@@ -31,23 +31,21 @@ export default function SalaDetalle() {
   const [salaInfo, setSalaInfo] = useState<Sala | null>(null);
   const [turnos, setTurnos] = useState<any[]>([]);
   const [dia, setDia] = useState<string>("");
-  
   const [ocupados, setOcupados] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [error, setError] = useState("");
-  const [turnEle, setTurnEle] = useState<number[]>([]);
-
-  const [ciInput, setCiInput] = useState("");
   const [participantes, setParticipantes] = useState<string[]>([]);
   const [participantesPermitidos, setParticipantesPermitidos] = useState<any[]>([]);
 
-
   const [loadingReserva, setLoadingReserva] = useState(false);
-
   const [incluirme, setIncluirme] = useState(true);
   const [miCI, setMiCI] = useState<string | null>(null);
-  
+
+  const [error, setError] = useState("");
+  const [turnosSeleccionados, setTurnosSeleccionados] = useState<number[]>([]);
+
+  const [ciInput, setCiInput] = useState("");
+
   const [modalVisible, setModalVisible] = useState(false);
   const [successData, setSuccessData] = useState<ReservaExitosa | null>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
@@ -72,14 +70,14 @@ export default function SalaDetalle() {
   const fetchSala = async () => {
     try{
       const response = await fetch(`${API}/salas/${idSalaNumber}`)
-      const data: Sala = await response.json()
+      const dataSala: Sala = await response.json()
 
       if (!response.ok) {
         setError("No se pudo cargar info de la sala");
         return;
       }
 
-      setSalaInfo(data)
+      setSalaInfo(dataSala)
     } catch (err) {
       setError("Error al conectar con el servidor");
     } finally {
@@ -90,8 +88,8 @@ export default function SalaDetalle() {
   // ========= 2. Obtener turnos =========
   const fetchTurnos = async () => {
     const response = await fetch(`${API}/turnos`);
-    const data = await response.json();
-    setTurnos(data);
+    const dataTurnos = await response.json();
+    setTurnos(dataTurnos);
   };
 
   // ========= 3. Obtener reservas ocupadas para esa fecha =========
@@ -158,21 +156,28 @@ export default function SalaDetalle() {
     load();
   }, []);
 
-  
-  // ========= AGREGAR PARTICIPANTES =========
-  const agregarParticipante = () => {
-    if (ciInput.trim() === "") return;
-    setParticipantes((prev) => [...prev, ciInput.trim()]);
-    setCiInput("");
+  // ====== Turnos seleccionados (máximo 2) ======
+  const toggleTurno = (id_turno: number) => {
+    setTurnosSeleccionados((prev) => {
+      if (prev.includes(id_turno)) {
+        return prev.filter((t) => t !== id_turno);
+      } else {
+        if (prev.length >= 2) {
+          Alert.alert("Máximo 2 turnos", "Solo puedes seleccionar hasta 2 bloques de horario.");
+          return prev;
+        }
+        return [...prev, id_turno];
+      }
+    });
   };
-
+  
   const eliminarParticipante = (ci: string) => {
     setParticipantes((prev) => prev.filter((p) => p !== ci));
   };
 
   // ========= 4. Crear reserva =========
   const crearReserva = async () => {
-    if (turnEle.length === 0) {
+    if (turnosSeleccionados.length === 0) {
       Alert.alert("Error", "Debes seleccionar al menos un horario.");
       return;
     }
@@ -187,11 +192,12 @@ export default function SalaDetalle() {
         ? Array.from(new Set([miCI, ...participantes]))
         : participantes.filter((p) => p !== miCI);
 
+
     try {
       const ci = await AsyncStorage.getItem("user_ci");
       const resultados: ReservaExitosa[] = [];
 
-      for (const turno of turnEle) {
+      for (const turno of turnosSeleccionados) {
         const response = await fetch(`${API}/reservas`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -208,17 +214,22 @@ export default function SalaDetalle() {
         const data = await response.json();
 
         if (response.ok) {
-          const turnoInfo = turnos.find((t) => t.id_turno === turno);
-          const horario = turnoInfo
-            ? `${turnoInfo.hora_inicio.slice(0,5)} - ${turnoInfo.hora_fin.slice(0,5)}`
-            : "—";
+          const horariosSeleccionados: string[] = [];
 
+          for (const turno of turnosSeleccionados) {
+            const turnoInfo = turnos.find((t) => t.id_turno === turno);
+            const horario = turnoInfo
+              ? `${turnoInfo.hora_inicio.slice(0, 5)} - ${turnoInfo.hora_fin.slice(0, 5)}`
+              : "—";
+
+            horariosSeleccionados.push(horario);
           resultados.push({
             sala: salaInfo?.nombre_sala || "—",
             fecha: dia,
-            horario,
+            horario: horariosSeleccionados,
             participantes: participantesFinales,
           });
+        }
         } else {
           setErrorModal((prev) => (prev ? prev + "\n" : "") + (data.mensaje || "Error en reserva"));
         }
@@ -242,21 +253,6 @@ if (loading || !salaInfo) {
   );
 }
 
-
-  const guardarTurno = (turn: number) => {
-    setTurnEle((prev) => {
-      if (prev.includes(turn)) {
-        // si ya estaba seleccionado, lo deselecciona
-        return prev.filter((t) => t !== turn);
-      } else if (prev.length < 2) {
-        // permite agregar hasta 2
-        return [...prev, turn];
-      } else {
-        Alert.alert("Límite alcanzado", "Solo se pueden seleccionar hasta 2 turnos");
-        return prev;
-      }
-    });
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -293,7 +289,7 @@ if (loading || !salaInfo) {
       {/* LISTA DE TURNOS */}
       {turnos.map((t) => {
         const ocupado = ocupados.includes(t.id_turno);
-        const seleccionado = turnEle.includes(t.id_turno);
+        const seleccionado = turnosSeleccionados.includes(t.id_turno);
 
         return (
           <TouchableOpacity
@@ -304,7 +300,7 @@ if (loading || !salaInfo) {
               seleccionado && styles.turnoSeleccionado,
             ]}
             disabled={ocupado}
-            onPress={() => guardarTurno(t.id_turno)}
+            onPress={() => toggleTurno(t.id_turno)}
           >
             <Text style={styles.turnoText}>
               {t.hora_inicio.slice(0, 5)} - {t.hora_fin.slice(0, 5)}
