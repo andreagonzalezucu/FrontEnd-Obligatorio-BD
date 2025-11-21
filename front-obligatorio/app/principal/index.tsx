@@ -29,6 +29,13 @@ export default function PrincipalHome() {
         <Text style={styles.buttonText}>Estadísticas</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push("/principal/panelDeControl")}
+      >
+        <Text style={styles.buttonText}>Estadísticas</Text>
+      </TouchableOpacity>
+
       <View style={styles.logOutContainer}>
         <TouchableOpacity onPress={() => router.push("/login")}>
           <Text style={styles.logOutText}>Log out</Text>
