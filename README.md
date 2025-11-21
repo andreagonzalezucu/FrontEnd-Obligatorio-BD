@@ -104,6 +104,7 @@ npm install
 ```
 npx expo install react-native-calendars
 npx expo install @react-native-async-storage/async-storage
+npm install @react-native-picker/picker
 ```
 
 2. Para correr la aplicación:
