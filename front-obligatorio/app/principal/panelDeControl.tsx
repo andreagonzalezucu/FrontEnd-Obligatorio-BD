@@ -154,12 +154,36 @@ export default function Admin() {
   };
 
   const crearUsuario = async () => {
-    if (!nuevoUsuario.ci || !nuevoUsuario.nombre || !nuevoUsuario.password)
+    if (
+        !nuevoUsuario.ci ||
+        !nuevoUsuario.nombre ||
+        !nuevoUsuario.email ||
+        !nuevoUsuario.password ||
+        !seleccion.rol ||
+        !seleccion.id_programa
+    ) {
         return Alert.alert("Error", "Faltan campos obligatorios");
+    }
 
     try {
-        // 1. Crear participante
-        const res1 = await fetch(`${BASE_URL}/participantes`, {
+        // 1. Crear login primero
+        const resLogin = await fetch(`${BASE_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            correo: nuevoUsuario.email,
+            password: nuevoUsuario.password,
+        }),
+        });
+
+        const dataLogin = await resLogin.json();
+
+        if (!resLogin.ok) {
+        return Alert.alert("Error", dataLogin.mensaje || "Error al crear login.");
+        }
+
+        // 2. Crear participante
+        const resPart = await fetch(`${BASE_URL}/participantes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -170,30 +194,17 @@ export default function Admin() {
         }),
         });
 
-        const data1 = await res1.json();
+        const dataPart = await resPart.json();
 
-        if (!res1.ok) {
-        return Alert.alert("Error", data1.mensaje);
-        }
-
-        // 2. Registrar usuario para login
-        const res2 = await fetch(`${BASE_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            correo: nuevoUsuario.email,
-            password: nuevoUsuario.password,
-        }),
-        });
-
-        const data2 = await res2.json();
-
-        if (!res2.ok) {
-        return Alert.alert("Advertencia", "El participante fue creado, pero ocurrió un error al registrar el usuario.");
+        if (!resPart.ok) {
+        return Alert.alert(
+            "Error",
+            "El login fue creado, pero ocurrió un error al crear el participante."
+        );
         }
 
         // 3. Crear registro académico
-        const res3 = await fetch(`${BASE_URL}/participantes_programa_academico`, {
+        const resReg = await fetch(`${BASE_URL}/participantes_programa_academico`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -203,15 +214,14 @@ export default function Admin() {
         }),
         });
 
-        const data3 = await res3.json();
+        const dataReg = await resReg.json();
 
-        if (!res3.ok) {
+        if (!resReg.ok) {
         return Alert.alert(
-            "Advertencia",
+            "Error",
             "Usuario creado, pero ocurrió un error al asignar el programa y rol."
         );
         }
-
 
         Alert.alert("Éxito", "Usuario creado correctamente.");
 
@@ -226,13 +236,14 @@ export default function Admin() {
 
         setSeleccion({ rol: "", id_programa: "" });
 
-
         cargarTodo();
+
     } catch (err) {
         console.log(err);
         Alert.alert("Error", "No se pudo crear el usuario.");
     }
     };
+
 
   const eliminarUsuario = async (ci:string) => {
     await fetch(`${BASE_URL}/participantes/${ci}`, { method: "DELETE" });
