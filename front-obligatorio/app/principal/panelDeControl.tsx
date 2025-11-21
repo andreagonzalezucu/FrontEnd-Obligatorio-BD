@@ -334,13 +334,26 @@ export default function Admin() {
           onChangeText={(t) => setNuevaSala({ ...nuevaSala, tipo: t })}
         />
 
-        <TextInput
-          placeholder="ID edificio"
-          style={styles.input}
-          keyboardType="numeric"
-          value={nuevaSala.edificio}
-          onChangeText={(t) => setNuevaSala({ ...nuevaSala, edificio: t })}
-        />
+        <Text style={styles.subtitle}>Edificio</Text>
+        <View style={styles.pickerContainer}>
+        <Picker
+            selectedValue={nuevaSala.edificio}
+            onValueChange={(value: string) =>
+            setNuevaSala({ ...nuevaSala, edificio: value })
+            }
+        >
+            <Picker.Item label="Seleccione un edificio..." value="" />
+
+            {edificios.map((ed: Edificio) => (
+            <Picker.Item
+                key={ed.id_edificio}
+                label={`${ed.nombre_edificio} (${ed.departamento})`}
+                value={ed.id_edificio.toString()}
+            />
+            ))}
+        </Picker>
+        </View>
+
 
         <TouchableOpacity style={styles.btn} onPress={crearSala}>
           <Text style={styles.btnText}>Crear Sala</Text>
