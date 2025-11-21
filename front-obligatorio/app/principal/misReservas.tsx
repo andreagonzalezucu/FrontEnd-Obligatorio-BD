@@ -25,9 +25,12 @@ export default function MisReservas() {
   const [error, setError] = useState("");
 
   const BASE_URL =
-    Platform.OS === "android"
-      ? "http://10.0.2.2:5000"
-      : "http://localhost:5000";
+  Platform.OS === "android"
+    ? "http://10.0.2.2:5000"
+    : Platform.OS === "web"
+    ? "http://127.0.0.1:5000"
+    : "http://localhost:5000";
+
 
   const cargarReservas = async () => {
     try {
@@ -60,42 +63,72 @@ export default function MisReservas() {
     cargarReservas();
   }, []);
 
-  
-  const cancelarReserva = (id_reserva:number) => {
-    Alert.alert(
-      "Cancelar reserva",
-      "¿Estás seguro de que querés cancelar esta reserva?",
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Sí, cancelar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await fetch(
-                `${BASE_URL}/reservas/${id_reserva}/cancelar`,
-                { method: "PUT" }
-              );
 
-              const data = await response.json();
+  const cancelarReserva = async (id_reserva: number) => {
 
-              if (!response.ok) {
-                Alert.alert("Error", data.mensaje || "No se pudo cancelar.");
-                return;
-              }
+  // Web usa window.confirm
+  if (Platform.OS === "web") {
+    const confirmar = window.confirm("¿Estás seguro de que querés cancelar esta reserva?");
 
-              Alert.alert("Reserva cancelada", data.mensaje);
+    if (!confirmar) return;
 
-              // Recargar reservas
-              cargarReservas();
-            } catch (err) {
-              Alert.alert("Error", "No se pudo conectar al servidor.");
+    try {
+      console.log("Cancelando...");
+      const response = await fetch(`${BASE_URL}/reservas/${id_reserva}/cancelar`, {
+        method: "PUT",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.mensaje || "No se pudo cancelar.");
+        return;
+      }
+
+      alert("Reserva cancelada.");
+      cargarReservas();
+    } catch (err) {
+      alert("Error de conexión con el servidor.");
+    }
+
+    return;
+  }
+
+  //  Android/iOS mantiene Alert.alert
+  Alert.alert(
+    "Cancelar reserva",
+    "¿Estás seguro de que querés cancelar esta reserva?",
+    [
+      { text: "No", style: "cancel" },
+      {
+        text: "Sí, cancelar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            console.log("Cancelando...");
+            const response = await fetch(
+              `${BASE_URL}/reservas/${id_reserva}/cancelar`,
+              { method: "PUT" }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              Alert.alert("Error", data.mensaje || "No se pudo cancelar.");
+              return;
             }
-          },
+
+            Alert.alert("Reserva cancelada", data.mensaje);
+            cargarReservas();
+          } catch (err) {
+            Alert.alert("Error", "No se pudo conectar al servidor.");
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
+
 
   if (loading) {
     return (
