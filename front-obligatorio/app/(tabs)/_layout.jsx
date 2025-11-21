@@ -39,6 +39,16 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="principal/panelDeControl"
+        options={{
+          title: "Panel de Control",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="bar-chart" size={26} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
