@@ -35,6 +35,9 @@ El sistema implementa las reglas definidas en la consigna:
 ---
 
 ## 📁 Estructura del Proyecto Frontend
+
+**Modificar una vez la estructura terminada
+
 ```
 FRONTEND-OBLIGATORIO-BD/
 └── front-obligatorio/
@@ -96,10 +99,17 @@ Desde la ruta `.\FrontEnd-Obligatorio-BD\front-obligatorio`, en el cmd ejecutar:
 npm install
 ```
 
+-  Dentro del proyecto, es necesario instalar también las siguientes librerías
+
+```
+npx expo install react-native-calendars
+npx expo install @react-native-async-storage/async-storage
+```
+
 2. Para correr la aplicación:
 
 ```
-npx expo start
+npx expo start -c
 ```
 
 Se podrá ejecutar la app desde
@@ -129,20 +139,29 @@ El frontend implementa los siguientes flujos principales:
 
 + Consulta de disponibilidad
 + Creación de reservas
-+ Cancelación de reservas
++ Reglas aplicadas (límite diario/semanal)
 + Lógica en base a reglas del sistema (siempre controlada por el backend)
 
 ### 📘 Mis Reservas
 
-+ Listado de reservas activas
++ Listado de reservas activas y canceladas
 + Detalle de cada reserva
-+ Reglas aplicadas (límite diario/semanal)
++ Cancelación de reservas
 
-### ✔️ Asistencias
 
-+ Registro de asistencia por reserva
-+ Validación de participantes
+### 📶 Estadísticas
+
++ Módulo habilitado solo para admin.
++ Reportes en base a consultas asignadas en la consigna
 + Visualización de estado de asistencia
++ Reportes según edificios, salas, cantidad de reservas, etc.
+
+### 💻 Panel de control
+
++ Módulo habilitado solo para admin.
++ Permite crear, modificar y eliminar elementos del programa (edificios, salas, horarios disponibles).
++ El admin puede registrar nuevos participantes, como también monitorear su asistencia y sanciones.
+
 ---
 
 ## 🧩 Entregables Incluidos
