@@ -104,7 +104,7 @@ export default function Estadisticas() {
       <Accordion title="Promedio de participantes por sala">
         {stats.promedio.map((p, i) => (
           <Text key={i} style={styles.item}>
-            {p.nombre_sala}: {p.promedio_participantes.toFixed(1)} participantes
+            {p.nombre_sala}: {parseFloat(p.promedio_participantes)?.toFixed(1) ?? "0.0"} participantes
           </Text>
         ))}
       </Accordion>
