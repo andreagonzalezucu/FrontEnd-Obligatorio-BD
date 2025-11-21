@@ -80,7 +80,7 @@ export default function Estadisticas() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>📊 Estadísticas</Text>
+      <Text style={styles.title}>Estadísticas</Text>
 
       {/* Salas más reservadas */}
       <Accordion title="Salas más reservadas">
