@@ -435,7 +435,7 @@ export default function SalaDetalle() {
         errorMessage={errorModal}
         onClose={() => {
           setModalVisible(false);
-          if (successData) router.back();
+          if (successData) router.replace("/principal");
         }}
       />
 

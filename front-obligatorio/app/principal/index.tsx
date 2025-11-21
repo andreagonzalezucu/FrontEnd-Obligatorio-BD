@@ -1,19 +1,65 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
+import { useState,useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const BASE_URL =
+    Platform.OS === "android"
+      ? "http://10.0.2.2:5000"
+      : "http://127.0.0.1:5000";
 
 export default function PrincipalHome() {
   const router = useRouter();
+  const [tieneSancion, setTieneSancion] = useState(false)
+  const [cargandoSancion, setCargandoSancion] = useState(true);
+  
+  useEffect(() => {
+  async function verificarSanciones() {
+    const ci = await AsyncStorage.getItem("user_ci");
+    if (!ci) return;
+
+    const response = await fetch(`${BASE_URL}/sanciones/${ci}/activas`);
+    const data = await response.json();
+
+    setTieneSancion(data.tiene_sancion);
+    setCargandoSancion(false);
+  }
+
+    verificarSanciones();
+  }, []);
+
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenido</Text>
 
       <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/principal/edificio")}
+        style={[
+          styles.button,
+          tieneSancion && { backgroundColor: "#9ca3af" } 
+        ]}
+        onPress={() => {
+          if (!tieneSancion) {
+            router.push("/principal/edificio");
+          }
+        }}
+        disabled={tieneSancion}
       >
-        <Text style={styles.buttonText}>Reservar</Text>
+        <Text style={styles.buttonText}>
+          Reservar
+        </Text>
       </TouchableOpacity>
+
+      {tieneSancion && (
+        <Text style={{ 
+            marginTop: 10,
+            color: "red",
+            fontWeight: "bold",
+            textAlign: "center"
+        }}>
+          Tenés una sanción vigente y no podés realizar reservas
+        </Text>
+      )}
 
       <TouchableOpacity
         style={styles.button}
