@@ -41,3 +41,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+#Package-lock.json
+package.json
+package-lock.json
