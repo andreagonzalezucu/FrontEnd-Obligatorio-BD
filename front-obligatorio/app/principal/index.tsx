@@ -33,7 +33,7 @@ export default function PrincipalHome() {
         style={styles.button}
         onPress={() => router.push("/principal/panelDeControl")}
       >
-        <Text style={styles.buttonText}>Estadísticas</Text>
+        <Text style={styles.buttonText}>Panel de control</Text>
       </TouchableOpacity>
 
       <View style={styles.logOutContainer}>
