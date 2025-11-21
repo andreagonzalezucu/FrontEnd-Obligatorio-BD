@@ -307,7 +307,10 @@ export default function SalaDetalle() {
           const [hIni, mIni] = t.hora_inicio.split(":").map(Number);
           const inicioTurnoMin = hIni * 60 + mIni;
 
-          return inicioTurnoMin >= horaActual; 
+          const [hFin, mFin] = t.hora_fin.split(":").map(Number);
+          const finTurnoMin = hFin * 60 + mFin;
+
+          return finTurnoMin > horaActual; 
         }).map((t) => {
           const ocupado = ocupados.includes(t.id_turno);
           const seleccionado = turnosSeleccionados.includes(t.id_turno);
