@@ -31,6 +31,8 @@ export default function EdificioDetail() {
   const router= useRouter();
   const idEdificioNum = Number(edi);
 
+  const [miRol, setMiRol] = useState<string | null>(null);
+
   const fetchEdificio = async () => {
     try{
       const response = await fetch(`${API}/edificios/${idEdificioNum}`)
@@ -52,9 +54,18 @@ export default function EdificioDetail() {
   const fetchSalas = async () => {
     try {
       const ci = await AsyncStorage.getItem("user_ci");
+      const rol = await AsyncStorage.getItem("user_rol");
 
-      const response = await fetch(`${API}/salas-permitidas?ci=${ci}&id_edificio=${idEdificioNum}`);
+      let response;
 
+      if (rol === "admin") {
+        response = await fetch(`${API}/salas?id_edificio=${idEdificioNum}`);
+      } else {
+        response = await fetch(
+          `${API}/salas-permitidas?ci=${ci}&id_edificio=${idEdificioNum}`
+        );
+      }
+      
       const data: Sala[] = await response.json();
 
       if (!response.ok) {
@@ -79,6 +90,15 @@ export default function EdificioDetail() {
     fetchEdificio();
     fetchSalas();
   }, [edi]);
+
+  useEffect(() => {
+    const loadRole = async () => {
+      const rol = await AsyncStorage.getItem("user_rol");
+      setMiRol(rol);
+    };
+    loadRole();
+  }, []);
+
 
   if (loadingEdificio || loadingSalas) {
     return (
