@@ -36,8 +36,6 @@ El sistema implementa las reglas definidas en la consigna:
 
 ## 📁 Estructura del Proyecto Frontend
 
-**Modificar una vez la estructura terminada
-
 ```
 FRONTEND-OBLIGATORIO-BD/
 └── front-obligatorio/
@@ -46,20 +44,37 @@ FRONTEND-OBLIGATORIO-BD/
     ├── app/
     │   ├── (tabs)/
     │   │   ├── _layout.jsx
-    │   │   └── login.jsx
+    │   │   ├── estadisticas.jsx
+    │   │   ├── index.jsx
+    │   │   ├── login.tsx
+    │   │   ├── misReservas.jsx
+    │   │   └── panelDeControl.jsx
+    │   │
+    │   ├── components/
+    │   │   ├── Accordion.jsx
+    │   │   ├── ModalConfirmar.tsx
+    │   │   ├── ModalConfirmarReserva.tsx
+    │   │   └── ModalResultado.tsx
     │   │
     │   ├── principal/
     │   │   ├── edificio/
     │   │   │   ├── sala/
+    │   │   │   │   ├── _layout.tsx
     │   │   │   │   └── [sal].tsx
-    │   │   │   └── [edi].tsx
+    │   │   │   ├── [edi].tsx
+    │   │   │   └── index.tsx
     │   │   │
     │   │   ├── _layout.tsx
+    │   │   ├── estadisticas.tsx
     │   │   ├── index.tsx
-    │   │   └── misReservas.tsx
+    │   │   ├── misReservas.tsx
+    │   │   └── panelDeControl.tsx
+    │   │
+    │   ├── types/
     │   │
     │   ├── _layout.tsx
-    │   └── index.tsx
+    │   ├── index.tsx
+    │   └── login.jsx
     │
     ├── assets/
     ├── node_modules/
@@ -69,9 +84,8 @@ FRONTEND-OBLIGATORIO-BD/
     ├── eslint.config.js
     ├── expo-env.d.ts
     ├── package.json
-    ├── package-lock.json
-    ├── README.md
-    └── tsconfig.json
+    └── package-lock.json
+
 ```
 
 ---
@@ -116,7 +130,7 @@ npx expo start -c
 Se podrá ejecutar la app desde
 + Expo Go (Android / iOS)
 + Emulador Android
-+ Browser Web
++ Navegador Web
 
 #### ⚠️IMPORTANTE: Asegurarse de tener en ejecución la parte de backend (Ver repositorio https://github.com/belenkanas/BDI-Obligatorio---V.Blanco-A.Gonzalez-B.Kanas.git )
 --- 
@@ -125,39 +139,39 @@ Se podrá ejecutar la app desde
 
 El frontend implementa los siguientes flujos principales:
 
-### 🔐 Autenticación
+### 🔐 Autenticación (_login.tsx_)
 
 + Inicio de sesión de usuarios registrados
 + Validación mediante backend
 
-### 🏢 Gestión de Edificios y Salas
+### 🏢 Gestión de Edificios y Salas (_principal_ --> _[edi].tsx_ --> _[sal].tsx_)
 
 + Listado de edificios disponibles
 + Selección de salas según edificio
 + Visualización de información de la sala
 
-### 📅 Reservas
+### 📅 Reservas (Dentro de _[sal].tsx_)
 
 + Consulta de disponibilidad
 + Creación de reservas
 + Reglas aplicadas (límite diario/semanal)
 + Lógica en base a reglas del sistema (siempre controlada por el backend)
 
-### 📘 Mis Reservas
+### 📘 Mis Reservas (_misReservas.tsx_)
 
 + Listado de reservas activas y canceladas
 + Detalle de cada reserva
 + Cancelación de reservas
 
 
-### 📶 Estadísticas
+### 📶 Estadísticas (_estadisticas.tsx_)
 
 + Módulo habilitado solo para admin.
 + Reportes en base a consultas asignadas en la consigna
 + Visualización de estado de asistencia
 + Reportes según edificios, salas, cantidad de reservas, etc.
 
-### 💻 Panel de control
+### 💻 Panel de control (_panelDeControl.tsx_)
 
 + Módulo habilitado solo para admin.
 + Permite crear, modificar y eliminar elementos del programa (edificios, salas, horarios disponibles).
