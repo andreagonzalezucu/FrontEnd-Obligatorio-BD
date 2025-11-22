@@ -162,13 +162,40 @@ export default function SalaDetalle() {
     setTurnosSeleccionados((prev) => {
       if (prev.includes(id_turno)) {
         return prev.filter((t) => t !== id_turno);
-      } else {
-        if (prev.length >= 2) {
-          Alert.alert("Máximo 2 turnos", "Solo puedes seleccionar hasta 2 bloques de horario.");
-          return prev;
-        }
-        return [...prev, id_turno];
+      } 
+      // Caso 2: si no hay ninguno seleccionado → agregar sin validar
+      if (prev.length === 0) {
+        return [id_turno];
       }
+      
+      if (prev.length >= 2) {
+        Alert.alert("Máximo 2 turnos", "Solo puedes seleccionar hasta 2 bloques de horario.");
+        return prev;
+      }
+
+      const turnoExistente = turnos.find((t) => t.id_turno === prev[0]);
+      const turnoNuevo = turnos.find((t) => t.id_turno === id_turno);
+
+      if (!turnoExistente || !turnoNuevo){
+        return prev;
+      }
+
+      const existenteFin = turnoExistente.hora_fin;
+      const nuevoInicio = turnoNuevo.hora_inicio;
+
+      const nuevoFin = turnoNuevo.hora_fin;
+      const existenteInicio = turnoExistente.hora_inicio;
+
+      const esConsecutivo = nuevoInicio === existenteFin || existenteInicio === nuevoFin;
+
+      if (!esConsecutivo) {
+        Alert.alert("Turnos no consecutivos", "Solo podés reservar dos bloques si son seguidos");
+        return prev;
+      }
+
+      // Si es consecutivo, permitirlo
+      return [...prev, id_turno];
+       
     });
   };
   
