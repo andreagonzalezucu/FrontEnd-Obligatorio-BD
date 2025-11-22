@@ -344,55 +344,90 @@ export default function Admin() {
     };
 
 
-  const handleEliminarUsuario = (ci:string) => {
-    setMensajeConfirmacion(
+  const handleEliminarUsuario = (ci: string) => {
+  setMensajeConfirmacion(
     `⚠️ ¿Seguro que deseas eliminar el usuario con CI: ${ci}?\n\n` +
-    "El usuario será eliminado del sistema y será removido de cualquier reserva " +
-    "en la que participe. Si es el único participante de una reserva, dicha reserva " +
-    "será eliminada.\n\n" +
+    "Si tiene reservas activas, se te pedirá una confirmación adicional.\n\n" +
     "Esta acción NO se puede deshacer."
   );
 
-    setAccionPendiente(() => () => eliminarUsuario(ci));
-    setModalConfirmarVisible(true);
-  };
+  setAccionPendiente(() => () => intentarEliminarUsuario(ci));
+  setModalConfirmarVisible(true);
+};
 
-  const eliminarUsuario = async (ci: string) => {
-    try{
-        const res = await fetch(`${BASE_URL}/participantes/${ci}?force=true`, {
-          method: "DELETE",
-        });
 
-        let data = null;
-        try {
-          data = await res.json();
-        } catch {
-          data = {};
-        }
+const intentarEliminarUsuario = async (ci: string) => {
+  try {
+    const res = await fetch(`${BASE_URL}/participantes/${ci}`, {
+      method: "DELETE"
+    });
 
-        if (!res.ok){
-          if (res.status === 409) {
-            setResultadoExito(false);
-            setMensajeResultado(
-              data?.mensaje || "No se puede eliminar el participante porque está asociado a reservas."
-            );
-            setModalResultadoVisible(true);
-            return;
-          }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
 
-          throw new Error(data?.mensaje || "Error al eliminar el participante");
-        } 
+    // Caso: requiere confirmación forzada
+    if (res.status === 409) {
+      setMensajeConfirmacion(
+        `⚠️ El participante con CI ${ci} tiene reservas activas.\n\n` +
+        "¿Deseas ELIMINARLO FORZADAMENTE?\n\n" +
+        "Si es el único participante de una reserva, la reserva será eliminada."
+      );
+      setAccionPendiente(() => () => eliminarUsuarioForzado(ci));
+      setModalConfirmarVisible(true);
+      return;
+    }
 
+    if (!res.ok) {
+      throw new Error(data?.mensaje || "Error eliminando participante.");
+    }
+
+        // Eliminación exitosa
         setResultadoExito(true);
-        setMensajeResultado("Usuario eliminado con éxito");
+        setMensajeResultado("Usuario eliminado con éxito.");
         cargarTodo();
-      } catch (err) {
+        
+      } catch (error) {
         setResultadoExito(false);
         setMensajeResultado("Error inesperado al eliminar el participante.");
       }
 
       setModalResultadoVisible(true);
+    };
+
+
+  const eliminarUsuarioForzado = async (ci: string) => {
+    try {
+      const res = await fetch(`${BASE_URL}/participantes/${ci}?force=true`, {
+        method: "DELETE"
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error eliminando participante.");
+      }
+
+      setResultadoExito(true);
+      setMensajeResultado("Usuario eliminado de forma forzada con éxito.");
+      cargarTodo();
+
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar el participante.");
+    }
+
+    setModalResultadoVisible(true);
   };
+
 
 
 
