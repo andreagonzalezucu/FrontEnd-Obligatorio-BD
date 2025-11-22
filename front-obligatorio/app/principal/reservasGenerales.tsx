@@ -223,7 +223,7 @@ export default function MisReservas() {
         </View>
       ))}
     </View>
-
+    
     {/* BOTONES: Eliminar / CANCELAR */}
       <TouchableOpacity
           style={styles.btnEliminar}
