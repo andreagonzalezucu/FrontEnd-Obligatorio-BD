@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform } from "react-native";
 import Accordion from "@/components/Accordion";
 import { Picker } from "@react-native-picker/picker";
+import ModalConfirmar from "@/components/ModalConfirmar";
+import ModalResultado from "@/components/ModalResultado";
 
 type Edificio = {
   id_edificio: number;
@@ -42,6 +44,14 @@ export default function Admin() {
   const [programas, setProgramas] = useState([]);
   const [seleccion, setSeleccion] = useState({ rol: "", id_programa: "" });
 
+  const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
+  const [modalResultadoVisible, setModalResultadoVisible] = useState(false);
+
+  const [mensajeConfirmacion, setMensajeConfirmacion] = useState("");
+  const [mensajeResultado, setMensajeResultado] = useState("");
+  const [resultadoExito, setResultadoExito] = useState(true);
+
+  const [accionPendiente, setAccionPendiente] = useState<null | (() => void)>(null);
 
   const [nuevoEdificio, setNuevoEdificio] = useState({
     nombre: "",
@@ -117,10 +127,91 @@ export default function Admin() {
     }
   };
 
-  const eliminarEdificio = async (id:number) => {
-    await fetch(`${BASE_URL}/edificios/${id}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarEdificio = (id_edificio: number) => {
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar este edificio?\n\n" +
+      "Si el edificio tiene salas asociadas, deberás confirmar una eliminación FORZADA.\n" +
+      "Esta acción borrará:\n" +
+      "• Todas las salas del edificio\n" +
+      "• Todas las reservas de esas salas\n" +
+      "• Todas las relaciones que tenían los participantes con dichas reservas\n\n" +
+      "Esta acción NO se puede deshacer."
+    );
+
+    setAccionPendiente(() => () => intentoEliminarEdificio(id_edificio));
+    setModalConfirmarVisible(true);
   };
+
+  const intentoEliminarEdificio = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/edificios/${id}`, {
+        method: "DELETE",
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (res.ok) {
+        setResultadoExito(true);
+        setMensajeResultado("Edificio eliminado con éxito");
+        cargarTodo();
+        setModalResultadoVisible(true);
+        return;
+      }
+
+      // Caso 409 → necesita force
+      if (res.status === 409) {
+        setMensajeConfirmacion(
+          "⚠️ El edificio tiene salas asociadas.\n\n" +
+          "¿Deseas continuar con la eliminación FORZADA?\n" +
+          "Esto borrará salas, reservas y relaciones asociadas."
+        );
+
+        setAccionPendiente(() => () => eliminarEdificioForzado(id));
+        setModalConfirmarVisible(true);
+        return;
+      }
+
+      throw new Error(data?.mensaje || "Error al eliminar el edificio");
+    } catch (e) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al intentar eliminar el edificio.");
+      setModalResultadoVisible(true);
+    }
+  };
+
+  const eliminarEdificioForzado = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/edificios/${id}?force=true`, {
+      method: "DELETE",
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error al eliminar edificio.");
+      }
+
+      setResultadoExito(true);
+      setMensajeResultado("Edificio eliminado con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar edificio.");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
 
   const crearSala = async () => {
     if (!nuevaSala.nombre || !nuevaSala.edificio)
@@ -148,10 +239,90 @@ export default function Admin() {
     }
   };
 
-  const eliminarSala = async (id:number) => {
-    await fetch(`${BASE_URL}/salas/${id}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarSala = (id_sala: number) => {
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar esta sala?\n\n" +
+      "Si tiene reservas asociadas, deberás confirmar nuevamente.\n\n" +
+      "Esta acción NO se puede deshacer."
+    );
+
+    // Primer intento: force = false
+    setAccionPendiente(() => () => intentoEliminarSala(id_sala));
+    setModalConfirmarVisible(true);
   };
+
+  const intentoEliminarSala = async (id: number) => {
+  try {
+    const res = await fetch(`${BASE_URL}/salas/${id}?force=false`, {
+      method: "DELETE",
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (!res.ok) {
+      // Si el backend devuelve 409 → requiere force
+      if (res.status === 409) {
+        setMensajeConfirmacion(
+          `⚠️ La sala tiene reservas asociadas.\n\n` +
+          `${data?.mensaje || "¿Deseas forzar la eliminación?"}`
+        );
+
+        // Ahora la acción pendiente será el DELETE con force=true
+        setAccionPendiente(() => () => eliminarSalaForzado(id));
+        setModalConfirmarVisible(true);
+        return;
+      }
+
+      throw new Error(data?.mensaje || "Error al eliminar la sala");
+    }
+
+      // Eliminó OK sin force
+      setResultadoExito(true);
+      setMensajeResultado("Sala eliminada con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar la sala.");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
+
+  const eliminarSalaForzado = async (id: number) => {
+  try {
+    const res = await fetch(`${BASE_URL}/salas/${id}?force=true`, {
+      method: "DELETE",
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.mensaje || "Error al eliminar la sala");
+    }
+
+    setResultadoExito(true);
+    setMensajeResultado("Sala eliminada con éxito");
+    cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar la sala.");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
+
 
   const crearUsuario = async () => {
     if (
@@ -245,10 +416,92 @@ export default function Admin() {
     };
 
 
-  const eliminarUsuario = async (ci:string) => {
-    await fetch(`${BASE_URL}/participantes/${ci}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarUsuario = (ci: string) => {
+  setMensajeConfirmacion(
+    `⚠️ ¿Seguro que deseas eliminar el usuario con CI: ${ci}?\n\n` +
+    "Si tiene reservas activas, se te pedirá una confirmación adicional.\n\n" +
+    "Esta acción NO se puede deshacer."
+  );
+
+  setAccionPendiente(() => () => intentarEliminarUsuario(ci));
+  setModalConfirmarVisible(true);
+};
+
+
+const intentarEliminarUsuario = async (ci: string) => {
+  try {
+    const res = await fetch(`${BASE_URL}/participantes/${ci}`, {
+      method: "DELETE"
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    // Caso: requiere confirmación forzada
+    if (res.status === 409) {
+      setMensajeConfirmacion(
+        `⚠️ El participante con CI ${ci} tiene reservas activas.\n\n` +
+        "¿Deseas ELIMINARLO FORZADAMENTE?\n\n" +
+        "Si es el único participante de una reserva, la reserva será eliminada."
+      );
+      setAccionPendiente(() => () => eliminarUsuarioForzado(ci));
+      setModalConfirmarVisible(true);
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.mensaje || "Error eliminando participante.");
+    }
+
+        // Eliminación exitosa
+        setResultadoExito(true);
+        setMensajeResultado("Usuario eliminado con éxito.");
+        cargarTodo();
+        
+      } catch (error) {
+        setResultadoExito(false);
+        setMensajeResultado("Error inesperado al eliminar el participante.");
+      }
+
+      setModalResultadoVisible(true);
+    };
+
+
+  const eliminarUsuarioForzado = async (ci: string) => {
+    try {
+      const res = await fetch(`${BASE_URL}/participantes/${ci}?force=true`, {
+        method: "DELETE"
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error eliminando participante.");
+      }
+
+      setResultadoExito(true);
+      setMensajeResultado("Usuario eliminado de forma forzada con éxito.");
+      cargarTodo();
+
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar el participante.");
+    }
+
+    setModalResultadoVisible(true);
   };
+
+
+
 
   if (loading) {
     return (
@@ -259,7 +512,8 @@ export default function Admin() {
     );
   }
 
-  return (
+return (
+  <>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Panel de Administración</Text>
 
@@ -278,20 +532,22 @@ export default function Admin() {
           value={nuevoEdificio.direccion}
           onChangeText={(t) => setNuevoEdificio({ ...nuevoEdificio, direccion: t })}
         />
+
         <Text style={{ marginTop: 10, fontWeight: "600" }}>Departamento</Text>
+
         <View style={styles.pickerContainer}>
-        <Picker
+          <Picker
             selectedValue={nuevoEdificio.departamento}
-            onValueChange={(value:string) =>
-            setNuevoEdificio({ ...nuevoEdificio, departamento: value })
+            onValueChange={(value: string) =>
+              setNuevoEdificio({ ...nuevoEdificio, departamento: value })
             }
-        >
+          >
             <Picker.Item label="Seleccione un departamento..." value="" />
 
             {departamentos.map((d) => (
-            <Picker.Item key={d} label={d} value={d} />
+              <Picker.Item key={d} label={d} value={d} />
             ))}
-        </Picker>
+          </Picker>
         </View>
 
         <TouchableOpacity style={styles.btn} onPress={crearEdificio}>
@@ -299,10 +555,11 @@ export default function Admin() {
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Edificios existentes</Text>
-        {edificios.map((e:Edificio) => (
+
+        {edificios.map((e: Edificio) => (
           <View key={e.id_edificio} style={styles.row}>
             <Text>{e.nombre_edificio}</Text>
-            <TouchableOpacity onPress={() => eliminarEdificio(e.id_edificio)}>
+            <TouchableOpacity onPress={() => handleEliminarEdificio(e.id_edificio)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
           </View>
@@ -335,35 +592,38 @@ export default function Admin() {
         />
 
         <Text style={styles.subtitle}>Edificio</Text>
+
         <View style={styles.pickerContainer}>
-        <Picker
+          <Picker
             selectedValue={nuevaSala.edificio}
             onValueChange={(value: string) =>
-            setNuevaSala({ ...nuevaSala, edificio: value })
+              setNuevaSala({ ...nuevaSala, edificio: value })
             }
-        >
+          >
             <Picker.Item label="Seleccione un edificio..." value="" />
 
             {edificios.map((ed: Edificio) => (
-            <Picker.Item
+              <Picker.Item
                 key={ed.id_edificio}
                 label={`${ed.nombre_edificio} (${ed.departamento})`}
                 value={ed.id_edificio.toString()}
-            />
+              />
             ))}
-        </Picker>
+          </Picker>
         </View>
-
 
         <TouchableOpacity style={styles.btn} onPress={crearSala}>
           <Text style={styles.btnText}>Crear Sala</Text>
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Salas existentes</Text>
-        {salas.map((s:Sala) => (
+
+        {salas.map((s: Sala) => (
           <View key={s.id_sala} style={styles.row}>
-            <Text>{s.nombre_sala} ({s.nombre_edificio})</Text>
-            <TouchableOpacity onPress={() => eliminarSala(s.id_sala)}>
+            <Text>
+              {s.nombre_sala} ({s.nombre_edificio})
+            </Text>
+            <TouchableOpacity onPress={() => handleEliminarSala(s.id_sala)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
           </View>
@@ -374,95 +634,117 @@ export default function Admin() {
         <Text style={styles.subtitle}>Crear usuario</Text>
 
         <TextInput
-            placeholder="CI"
-            style={styles.input}
-            value={nuevoUsuario.ci}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, ci: t })}
+          placeholder="CI"
+          style={styles.input}
+          value={nuevoUsuario.ci}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, ci: t })}
         />
 
         <TextInput
-            placeholder="Nombre"
-            style={styles.input}
-            value={nuevoUsuario.nombre}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, nombre: t })}
+          placeholder="Nombre"
+          style={styles.input}
+          value={nuevoUsuario.nombre}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, nombre: t })}
         />
 
         <TextInput
-            placeholder="Apellido"
-            style={styles.input}
-            value={nuevoUsuario.apellido}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, apellido: t })}
+          placeholder="Apellido"
+          style={styles.input}
+          value={nuevoUsuario.apellido}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, apellido: t })}
         />
 
         <TextInput
-            placeholder="Email"
-            style={styles.input}
-            value={nuevoUsuario.email}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, email: t })}
+          placeholder="Email"
+          style={styles.input}
+          value={nuevoUsuario.email}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, email: t })}
         />
 
         <TextInput
-            placeholder="Contraseña"
-            style={styles.input}
-            secureTextEntry
-            value={nuevoUsuario.password}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, password: t })}
+          placeholder="Contraseña"
+          style={styles.input}
+          secureTextEntry
+          value={nuevoUsuario.password}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, password: t })}
         />
 
-        {/* ROL */}
         <Text style={styles.subtitle}>Rol</Text>
+
         <View style={styles.pickerContainer}>
-            <Picker
+          <Picker
             selectedValue={seleccion.rol}
             onValueChange={(value: string) =>
-                setSeleccion({ ...seleccion, rol: value })
+              setSeleccion({ ...seleccion, rol: value })
             }
-            >
+          >
             <Picker.Item label="Seleccione un rol..." value="" />
             {roles.map((r) => (
-                <Picker.Item key={r} label={r} value={r} />
+              <Picker.Item key={r} label={r} value={r} />
             ))}
-            </Picker>
+          </Picker>
         </View>
 
-        {/* PROGRAMA */}
         <Text style={styles.subtitle}>Programa académico</Text>
+
         <View style={styles.pickerContainer}>
-            <Picker
+          <Picker
             selectedValue={seleccion.id_programa}
             onValueChange={(value: string) =>
-                setSeleccion({ ...seleccion, id_programa: value })
+              setSeleccion({ ...seleccion, id_programa: value })
             }
-            >
+          >
             <Picker.Item label="Seleccione un programa..." value="" />
             {programas.map((p: any) => (
-                <Picker.Item
+              <Picker.Item
                 key={p.id_programa}
                 label={p.nombre_programa}
                 value={p.id_programa.toString()}
-                />
+              />
             ))}
-            </Picker>
+          </Picker>
         </View>
 
         <TouchableOpacity style={styles.btn} onPress={crearUsuario}>
-            <Text style={styles.btnText}>Crear Usuario</Text>
+          <Text style={styles.btnText}>Crear Usuario</Text>
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Usuarios existentes</Text>
-        {usuarios.map((u: Participante) => (
-            <View key={u.ci} style={styles.row}>
-            <Text>{u.nombre} {u.apellido}</Text>
-            <TouchableOpacity onPress={() => eliminarUsuario(u.ci)}>
-                <Text style={styles.delete}>Eliminar</Text>
-            </TouchableOpacity>
-            </View>
-        ))}
-        </Accordion>
 
-            </ScrollView>
-        );
-        }
+        {usuarios.map((u: Participante) => (
+          <View key={u.ci} style={styles.row}>
+            <Text>
+              {u.nombre} {u.apellido}
+            </Text>
+            <TouchableOpacity onPress={() => handleEliminarUsuario(u.ci)}>
+              <Text style={styles.delete}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </Accordion>
+    </ScrollView>
+
+    {/* MODAL DE CONFIRMACIÓN */}
+    <ModalConfirmar
+      visible={modalConfirmarVisible}
+      mensaje={mensajeConfirmacion}
+      onCancelar={() => setModalConfirmarVisible(false)}
+      onConfirmar={() => {
+        setModalConfirmarVisible(false);
+        accionPendiente?.();
+      }}
+    />
+
+    {/*Modal de resultado de error o éxito */}
+    <ModalResultado
+      visible={modalResultadoVisible}
+      mensaje={mensajeResultado}
+      exito={resultadoExito}
+      onCerrar={() => setModalResultadoVisible(false)}
+    />
+  </>
+);
+}
 
 const styles = StyleSheet.create({
     pickerContainer: {
