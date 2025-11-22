@@ -69,13 +69,20 @@ export default function PrincipalHome() {
           Tenés una sanción vigente y no podés realizar reservas
         </Text>
       )}
-
-      <TouchableOpacity
+      
+      {rol === "admin" ? (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/principal/reservasGenerales")}
+        >
+          <Text style={styles.buttonText}>Reservas Generales</Text>
+        </TouchableOpacity>
+      ):(<TouchableOpacity
         style={styles.button}
         onPress={() => router.push("/principal/misReservas")}
       >
         <Text style={styles.buttonText}>Mis Reservas</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>)}
 
       {rol === "admin" ? (
         <TouchableOpacity
