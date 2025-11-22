@@ -128,7 +128,13 @@ export default function Admin() {
   };
 
   const handleEliminarEdificio = (id_edificio: number) => {
-    setMensajeConfirmacion("¿Seguro que deseas eliminar este edificio?");
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar este edificio?\n\n" +
+      "Al eliminarlo también se borrarán todas las salas pertenecientes a este edificio, " +
+      "y las reservas asociadas a esas salas quedarán eliminadas de forma permanente.\n\n" +
+      "Esta acción NO se puede deshacer."
+    );
+
     setAccionPendiente(() => () => eliminarEdificio(id_edificio));
     setModalConfirmarVisible(true);
   };
@@ -136,18 +142,36 @@ export default function Admin() {
 
   const eliminarEdificio = async (id: number) => {
     try {
-      const res = await fetch(`${BASE_URL}/edificios/${id}`, {
+      const res = await fetch(`${BASE_URL}/edificios/${id}?force=true`, {
       method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Error al eliminar");
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok){
+        if (res.status === 409) {
+          setResultadoExito(false);
+          setMensajeResultado(
+            data?.mensaje || "No se puede eliminar el edificio porque tiene salas asociadas."
+          );
+          setModalResultadoVisible(true);
+          return;
+        }
+        // Otros errores (500, 404, etc)
+        throw new Error(data?.mensaje || "Error al eliminar");
+      } 
 
       setResultadoExito(true);
       setMensajeResultado("Edificio eliminado con éxito");
       cargarTodo();
     } catch (err) {
       setResultadoExito(false);
-      setMensajeResultado("No se pudo eliminar el edificio");
+      setMensajeResultado("Error inesperado al eliminar el edificio.");
     }
 
     setModalResultadoVisible(true);
@@ -181,25 +205,47 @@ export default function Admin() {
   };
 
   const handleEliminarSala = (id_sala: number) => {
-    setMensajeConfirmacion("¿Seguro que deseas eliminar esta sala?");
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar esta sala?\n\n" +
+      "Todas las reservas asociadas a esta sala serán eliminadas de forma permanente.\n\n" +
+      "Esta acción NO se puede deshacer."
+    );
     setAccionPendiente(() => () => eliminarSala(id_sala));
     setModalConfirmarVisible(true);
   };
 
   const eliminarSala = async (id: number) => {
     try{
-      const res = await fetch(`${BASE_URL}/salas/${id}`, {
+      const res = await fetch(`${BASE_URL}/salas/${id}?force=true`, {
       method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Error al eliminar");
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok){
+        if (res.status === 409) {
+          setResultadoExito(false);
+          setMensajeResultado(
+            data?.mensaje || "No se puede eliminar la sala porque tiene reservas asociadas."
+          );
+          setModalResultadoVisible(true);
+          return;
+        }
+
+        throw new Error(data?.mensaje || "Error al eliminar la sala");
+      } 
 
       setResultadoExito(true);
       setMensajeResultado("Sala eliminada con éxito");
       cargarTodo();
     } catch (err) {
       setResultadoExito(false);
-      setMensajeResultado("No se pudo eliminar la sala");
+      setMensajeResultado("Error inesperado al eliminar la sala.");
     }
 
     setModalResultadoVisible(true);
@@ -299,25 +345,50 @@ export default function Admin() {
 
 
   const handleEliminarUsuario = (ci:string) => {
-    setMensajeConfirmacion(`¿Eliminar participante con CI ${ci}?`);
+    setMensajeConfirmacion(
+    `⚠️ ¿Seguro que deseas eliminar el usuario con CI: ${ci}?\n\n` +
+    "El usuario será eliminado del sistema y será removido de cualquier reserva " +
+    "en la que participe. Si es el único participante de una reserva, dicha reserva " +
+    "será eliminada.\n\n" +
+    "Esta acción NO se puede deshacer."
+  );
+
     setAccionPendiente(() => () => eliminarUsuario(ci));
     setModalConfirmarVisible(true);
   };
 
   const eliminarUsuario = async (ci: string) => {
     try{
-        const res = await fetch(`${BASE_URL}/participantes/${ci}`, {
+        const res = await fetch(`${BASE_URL}/participantes/${ci}?force=true`, {
           method: "DELETE",
         });
 
-        if (!res.ok) throw new Error("Error al eliminar usuario");
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+
+        if (!res.ok){
+          if (res.status === 409) {
+            setResultadoExito(false);
+            setMensajeResultado(
+              data?.mensaje || "No se puede eliminar el participante porque está asociado a reservas."
+            );
+            setModalResultadoVisible(true);
+            return;
+          }
+
+          throw new Error(data?.mensaje || "Error al eliminar el participante");
+        } 
 
         setResultadoExito(true);
         setMensajeResultado("Usuario eliminado con éxito");
         cargarTodo();
       } catch (err) {
         setResultadoExito(false);
-        setMensajeResultado("No se pudo eliminar el usuario");
+        setMensajeResultado("Error inesperado al eliminar el participante.");
       }
 
       setModalResultadoVisible(true);
@@ -381,7 +452,7 @@ return (
         {edificios.map((e: Edificio) => (
           <View key={e.id_edificio} style={styles.row}>
             <Text>{e.nombre_edificio}</Text>
-            <TouchableOpacity onPress={() => eliminarEdificio(e.id_edificio)}>
+            <TouchableOpacity onPress={() => handleEliminarEdificio(e.id_edificio)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
           </View>
@@ -445,7 +516,7 @@ return (
             <Text>
               {s.nombre_sala} ({s.nombre_edificio})
             </Text>
-            <TouchableOpacity onPress={() => eliminarSala(s.id_sala)}>
+            <TouchableOpacity onPress={() => handleEliminarSala(s.id_sala)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
           </View>
@@ -538,7 +609,7 @@ return (
             <Text>
               {u.nombre} {u.apellido}
             </Text>
-            <TouchableOpacity onPress={() => eliminarUsuario(u.ci)}>
+            <TouchableOpacity onPress={() => handleEliminarUsuario(u.ci)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
           </View>
