@@ -6,21 +6,38 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
-type Reserva={
-  id_reserva: number,
-  id_sala: number,
-  fecha: string
-  id_turno:number,
-  estado:string, 
-  nombre_sala:string,
-  hora_inicio:string,
-  hora_fin:string,
-  nombre_edificio:string,
-  asistencia:string,
-}
+type Participante = {
+  nombre: string;
+  apellido: string;
+  asistencia: number;
+  ci: string;
+  fecha_solicitud_reserva: string;
+};
+
+type Sala = {
+  direccion: string;
+  edificio: string;
+  nombre_sala: string;
+  tipo_sala: string;
+};
+
+type Turno = {
+  hora_inicio: string;
+  hora_fin: string;
+};
+
+type ReservaGeneral = {
+  id_reserva: number;
+  estado: string;
+  fecha: string;
+  sala: Sala;                 
+  turno: Turno;               
+  participantes: Participante[]; 
+};
+
 
 export default function MisReservas() {
-  const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [reservas, setReservas] = useState<ReservaGeneral[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -56,107 +73,90 @@ export default function MisReservas() {
   }, []);
 
 
-  const cancelarReserva = async (id_reserva: number) => {
+  async function confirmarYEnviar({
+    mensaje,
+    url,
+    metodo,
+    onSuccess
+  }: {
+    mensaje: string;
+    url: string;
+    metodo: string;
+    onSuccess: () => void;
+  }) {
 
-  // Web usa window.confirm
-  if (Platform.OS === "web") {
-    const confirmar = window.confirm("¿Estás seguro de que querés cancelar esta reserva?");
+    // CONFIRMACIÓN EN WEB
+    if (Platform.OS === "web") {
+      const ok = window.confirm(mensaje);
+      if (!ok) return;
 
-    if (!confirmar) return;
+      try {
+        const response = await fetch(url, { method: metodo });
+        const data = await response.json();
 
-    try {
-      console.log("Cancelando...");
-      const response = await fetch(`${BASE_URL}/reservas/${id_reserva}/cancelar`, {
-        method: "PUT",
-      });
+        if (!response.ok) {
+          alert(data.mensaje || "Error en la operación.");
+          return;
+        }
 
-      const data = await response.json();
+        alert(data.mensaje || "Operación exitosa.");
+        onSuccess();
 
-      if (!response.ok) {
-        alert(data.mensaje || "No se pudo cancelar.");
-        return;
+      } catch (error) {
+        alert("Error de conexión al servidor.");
       }
 
-      alert("Reserva cancelada.");
-      cargarReservas();
-    } catch (err) {
-      alert("Error de conexión con el servidor.");
-    }
-
-    return;
-  }
-
-  //  Android/iOS mantiene Alert.alert
-  Alert.alert(
-    "Cancelar reserva",
-    "¿Estás seguro de que querés cancelar esta reserva?",
-    [
-      { text: "No", style: "cancel" },
-      {
-        text: "Sí, cancelar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            console.log("Cancelando...");
-            const response = await fetch(
-              `${BASE_URL}/reservas/${id_reserva}/cancelar`,
-              { method: "PUT" }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-              Alert.alert("Error", data.mensaje || "No se pudo cancelar.");
-              return;
-            }
-
-            Alert.alert("Reserva cancelada", data.mensaje);
-            cargarReservas();
-          } catch (err) {
-            Alert.alert("Error", "No se pudo conectar al servidor.");
-          }
-        },
-      },
-    ]
-  );
-};
-
-  async function marcarAsistencia(id_reserva: number) {
-    const ci = await AsyncStorage.getItem("user_ci");
-
-    const response = await fetch(
-      `${BASE_URL}/reservas/${id_reserva}/participantes/${ci}/asistencia`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ asistencia: true }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      Alert.alert("Error", data.mensaje || "No se pudo registrar la asistencia.");
       return;
     }
 
-    Alert.alert("Asistencia registrada");
-    cargarReservas();
+    // CONFIRMACIÓN EN MOBILE
+    return Alert.alert(
+      "Confirmar acción",
+      mensaje,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await fetch(url, { method: metodo });
+              const data = await response.json();
+
+              if (!response.ok) {
+                Alert.alert("Error", data.mensaje || "Error en la operación.");
+                return;
+              }
+
+              Alert.alert("Éxito", data.mensaje || "Operación exitosa.");
+              onSuccess();
+
+            } catch (error) {
+              Alert.alert("Error", "No se pudo conectar al servidor.");
+            }
+          }
+        }
+      ]
+    );
   }
 
-  function estadoAsistencia(r: Reserva) {
-    const ahora = new Date();
-    const inicio = new Date(`${r.fecha}T${r.hora_inicio}`);
-    const fin = new Date(`${r.fecha}T${r.hora_fin}`);
+  const cancelarReserva = async (id_reserva: number) => {
+    confirmarYEnviar({
+      mensaje: "¿Estás seguro de que querés cancelar esta reserva?",
+      url: `${BASE_URL}/reservas/${id_reserva}/cancelar`,
+      metodo: "PUT",
+      onSuccess: cargarReservas
+    });
+  };
 
-    if (r.asistencia === "1") return "asistio";
-    if (r.asistencia === "0") return "no_asistio";
-
-    if (ahora < inicio) return "antes";
-    if (ahora >= inicio && ahora <= fin) return "en_curso";
-
-    return "cerrado";
-  }
+  const borrarReserva = async (id_reserva: number) => {
+    confirmarYEnviar({
+      mensaje: "¿Estás seguro de que querés borrar esta reserva?",
+      url: `${BASE_URL}/reservas/${id_reserva}`,
+      metodo: "DELETE",
+      onSuccess: cargarReservas
+    });
+  };
 
 
   if (loading) {
@@ -177,84 +177,73 @@ export default function MisReservas() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Reservas</Text>
+      <Text style={styles.title}>Reservas del sistema</Text>
 
       {reservas.length === 0 && (
         <Text style={styles.noReservas}>No hay reservas existentes</Text>
       )}
 
       {reservas.map((r) => (
-        <View key={r.id_reserva} style={styles.card}>
-          <View style={styles.row}>
-            <Text style={styles.cardSala}>{r.nombre_sala}</Text>
-            <Text style={[styles.estado, estilosEstado(r.estado)]}>
-              {r.estado.toUpperCase()}
+  <View key={r.id_reserva} style={styles.card}>
+
+    {/* CABECERA */}
+    <View style={styles.cardHeader}>
+      <View>
+        <Text style={styles.salaTitulo}>{r.sala.nombre_sala}</Text>
+        <Text style={styles.salaEdificio}>{r.sala.edificio}</Text>
+      </View>
+
+      <Text style={[styles.estadoBadge, estilosEstado(r.estado)]}>
+        {r.estado.toUpperCase()}
+      </Text>
+    </View>
+
+    {/* INFORMACIÓN PRINCIPAL */}
+    <View style={styles.infoBox}>
+      <Text style={styles.infoLinea}>📅 {r.fecha}</Text>
+      <Text style={styles.infoLinea}>⏰ {r.turno.hora_inicio} - {r.turno.hora_fin}</Text>
+      <Text style={styles.infoLinea}>🏷 Tipo: {r.sala.tipo_sala}</Text>
+    </View>
+
+    {/* PARTICIPANTES */}
+    <View style={styles.participantesBox}>
+      <Text style={styles.participantesTitulo}>👥 Participantes</Text>
+
+      {r.participantes.map((p) => (
+        <View key={p.ci} style={styles.participanteItem}>
+          <Text style={styles.participanteNombre}>{p.nombre} {p.apellido}</Text>
+          <Text style={styles.participanteDato}>CI: {p.ci}</Text>
+          <Text style={styles.participanteDato}>Solicitud: {p.fecha_solicitud_reserva}</Text>
+          <Text style={styles.participanteAsistencia}>
+            Asistencia:{" "}
+            <Text style={{ color: p.asistencia ? "#16a34a" : "#dc2626" }}>
+              {p.asistencia ? "PRESENTE" : "AUSENTE"}
             </Text>
-          </View>
-
-          <Text style={styles.info}>📅 {r.fecha}</Text>
-          <Text style={styles.info}>⏰ {r.hora_inicio} - {r.hora_fin}</Text>
-          <Text style={styles.info}>🏢 {r.nombre_edificio}</Text>
-
-          <Text style={styles.participante}>
-            {r.asistencia === null
-              ? "Asistencia: sin registrar"
-              : r.asistencia
-              ? "Asistencia: PRESENTE"
-              : "Asistencia: AUSENTE"}
           </Text>
-
-          <>
-          {(() => {
-            const estado = estadoAsistencia(r);
-
-            if (estado === "antes") {
-              return (
-                <Text style={{ marginTop: 10, color: "gray" }}>
-                  La asistencia se habilita al inicio del turno
-                </Text>
-              );
-            }
-
-            if (estado === "en_curso") {
-              return (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: "green",
-                    padding: 12,
-                    borderRadius: 8,
-                    marginTop: 10
-                  }}
-                  onPress={() => marcarAsistencia(r.id_reserva)}
-                >
-                  <Text style={{ color: "white", textAlign: "center", fontWeight: "bold" }}>
-                    Marcar asistencia
-                  </Text>
-                </TouchableOpacity>
-              );
-            }
-
-            if (estado === "cerrado") {
-              return (
-                <Text style={{ marginTop: 10, color: "gray" }}>
-                  Ya pasó la hora de completar tu asistencia
-                </Text>
-              );
-            }
-          })()}
-        </>
-
-
-          {r.estado === "activa" && (
-            <TouchableOpacity
-              style={styles.btnCancelar}
-              onPress={() => cancelarReserva(r.id_reserva)}
-            >
-              <Text style={styles.btnText}>Cancelar reserva</Text>
-            </TouchableOpacity>
-          )}
         </View>
       ))}
+    </View>
+
+    {/* BOTONES: Eliminar / CANCELAR */}
+      <TouchableOpacity
+          style={styles.btnEliminar}
+          onPress={() => borrarReserva(r.id_reserva)}
+        >
+          <Text style={styles.btnCancelarText}>Eliminar reserva</Text>
+        </TouchableOpacity>
+        
+      {r.estado === "activa" && (
+        <TouchableOpacity
+          style={styles.btnCancelar}
+          onPress={() => cancelarReserva(r.id_reserva)}
+        >
+          <Text style={styles.btnCancelarText}>Cancelar reserva</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  
+))}
+
     </ScrollView>
   );
 }
@@ -294,13 +283,6 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontSize: 16
   },
-  card: {
-    backgroundColor: "#f8fafc",
-    marginBottom: 15,
-    padding: 15,
-    borderRadius: 12,
-    elevation: 3
-  },
   cardSala: {
     fontSize: 20,
     fontWeight: "bold",
@@ -329,12 +311,6 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontStyle: "italic"
   },
-  btnCancelar: {
-    backgroundColor: "#dc2626",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 15
-  },
   btnText: {
     color: "white",
     fontWeight: "bold",
@@ -342,5 +318,141 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "red"
-  }
+  },
+  card: {
+    backgroundColor: "white",
+    marginBottom: 20,
+    padding: 18,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  salaTitulo: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1e3a8a",
+  },
+
+  salaEdificio: {
+    color: "#475569",
+    fontSize: 16,
+  },
+
+  estadoBadge: {
+    color: "white",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+
+  infoBox: {
+    backgroundColor: "#f1f5f9",
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 5,
+    marginBottom: 15,
+  },
+
+  infoLinea: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: "#334155",
+  },
+
+  participantesBox: {
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 15,
+  },
+
+  participantesTitulo: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1e293b",
+    marginBottom: 10,
+  },
+
+  participanteItem: {
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+
+  participanteNombre: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0f172a",
+  },
+
+  participanteDato: {
+    fontSize: 14,
+    color: "#475569",
+  },
+
+  participanteAsistencia: {
+    marginTop: 2,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  actionsContainer: {
+    marginTop: 10,
+  },
+
+  asistenciaAviso: {
+    color: "gray",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+
+  btnAsistencia: {
+    backgroundColor: "#16a34a",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+
+  btnAsistenciaText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 16,
+  },
+
+  btnCancelar: {
+    backgroundColor: "#dc2626",
+    padding: 12,
+    borderRadius: 10,
+  },
+
+  btnCancelarText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 16,
+  },
+  btnEliminar: {
+    backgroundColor: "#3b0d0dff",
+    padding: 12,
+    borderRadius: 10,
+  },
+
 });
