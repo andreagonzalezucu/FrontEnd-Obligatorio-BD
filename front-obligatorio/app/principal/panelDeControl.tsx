@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform } from "react-native";
 import Accordion from "@/components/Accordion";
 import { Picker } from "@react-native-picker/picker";
+import ModalConfirmar from "@/components/ModalConfirmar";
+import ModalResultado from "@/components/ModalResultado";
 
 type Edificio = {
   id_edificio: number;
@@ -42,6 +44,14 @@ export default function Admin() {
   const [programas, setProgramas] = useState([]);
   const [seleccion, setSeleccion] = useState({ rol: "", id_programa: "" });
 
+  const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
+  const [modalResultadoVisible, setModalResultadoVisible] = useState(false);
+
+  const [mensajeConfirmacion, setMensajeConfirmacion] = useState("");
+  const [mensajeResultado, setMensajeResultado] = useState("");
+  const [resultadoExito, setResultadoExito] = useState(true);
+
+  const [accionPendiente, setAccionPendiente] = useState<null | (() => void)>(null);
 
   const [nuevoEdificio, setNuevoEdificio] = useState({
     nombre: "",
@@ -117,10 +127,32 @@ export default function Admin() {
     }
   };
 
-  const eliminarEdificio = async (id:number) => {
-    await fetch(`${BASE_URL}/edificios/${id}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarEdificio = (id_edificio: number) => {
+    setMensajeConfirmacion("¿Seguro que deseas eliminar este edificio?");
+    setAccionPendiente(() => () => eliminarEdificio(id_edificio));
+    setModalConfirmarVisible(true);
   };
+
+
+  const eliminarEdificio = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/edificios/${id}`, {
+      method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Error al eliminar");
+
+      setResultadoExito(true);
+      setMensajeResultado("Edificio eliminado con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("No se pudo eliminar el edificio");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
 
   const crearSala = async () => {
     if (!nuevaSala.nombre || !nuevaSala.edificio)
@@ -148,10 +180,31 @@ export default function Admin() {
     }
   };
 
-  const eliminarSala = async (id:number) => {
-    await fetch(`${BASE_URL}/salas/${id}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarSala = (id_sala: number) => {
+    setMensajeConfirmacion("¿Seguro que deseas eliminar esta sala?");
+    setAccionPendiente(() => () => eliminarSala(id_sala));
+    setModalConfirmarVisible(true);
   };
+
+  const eliminarSala = async (id: number) => {
+    try{
+      const res = await fetch(`${BASE_URL}/salas/${id}`, {
+      method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Error al eliminar");
+
+      setResultadoExito(true);
+      setMensajeResultado("Sala eliminada con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("No se pudo eliminar la sala");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
 
   const crearUsuario = async () => {
     if (
@@ -245,10 +298,32 @@ export default function Admin() {
     };
 
 
-  const eliminarUsuario = async (ci:string) => {
-    await fetch(`${BASE_URL}/participantes/${ci}`, { method: "DELETE" });
-    cargarTodo();
+  const handleEliminarUsuario = (ci:string) => {
+    setMensajeConfirmacion(`¿Eliminar participante con CI ${ci}?`);
+    setAccionPendiente(() => () => eliminarUsuario(ci));
+    setModalConfirmarVisible(true);
   };
+
+  const eliminarUsuario = async (ci: string) => {
+    try{
+        const res = await fetch(`${BASE_URL}/participantes/${ci}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) throw new Error("Error al eliminar usuario");
+
+        setResultadoExito(true);
+        setMensajeResultado("Usuario eliminado con éxito");
+        cargarTodo();
+      } catch (err) {
+        setResultadoExito(false);
+        setMensajeResultado("No se pudo eliminar el usuario");
+      }
+
+      setModalResultadoVisible(true);
+  };
+
+
 
   if (loading) {
     return (
@@ -259,7 +334,8 @@ export default function Admin() {
     );
   }
 
-  return (
+return (
+  <>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Panel de Administración</Text>
 
@@ -278,20 +354,22 @@ export default function Admin() {
           value={nuevoEdificio.direccion}
           onChangeText={(t) => setNuevoEdificio({ ...nuevoEdificio, direccion: t })}
         />
+
         <Text style={{ marginTop: 10, fontWeight: "600" }}>Departamento</Text>
+
         <View style={styles.pickerContainer}>
-        <Picker
+          <Picker
             selectedValue={nuevoEdificio.departamento}
-            onValueChange={(value:string) =>
-            setNuevoEdificio({ ...nuevoEdificio, departamento: value })
+            onValueChange={(value: string) =>
+              setNuevoEdificio({ ...nuevoEdificio, departamento: value })
             }
-        >
+          >
             <Picker.Item label="Seleccione un departamento..." value="" />
 
             {departamentos.map((d) => (
-            <Picker.Item key={d} label={d} value={d} />
+              <Picker.Item key={d} label={d} value={d} />
             ))}
-        </Picker>
+          </Picker>
         </View>
 
         <TouchableOpacity style={styles.btn} onPress={crearEdificio}>
@@ -299,7 +377,8 @@ export default function Admin() {
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Edificios existentes</Text>
-        {edificios.map((e:Edificio) => (
+
+        {edificios.map((e: Edificio) => (
           <View key={e.id_edificio} style={styles.row}>
             <Text>{e.nombre_edificio}</Text>
             <TouchableOpacity onPress={() => eliminarEdificio(e.id_edificio)}>
@@ -335,34 +414,37 @@ export default function Admin() {
         />
 
         <Text style={styles.subtitle}>Edificio</Text>
+
         <View style={styles.pickerContainer}>
-        <Picker
+          <Picker
             selectedValue={nuevaSala.edificio}
             onValueChange={(value: string) =>
-            setNuevaSala({ ...nuevaSala, edificio: value })
+              setNuevaSala({ ...nuevaSala, edificio: value })
             }
-        >
+          >
             <Picker.Item label="Seleccione un edificio..." value="" />
 
             {edificios.map((ed: Edificio) => (
-            <Picker.Item
+              <Picker.Item
                 key={ed.id_edificio}
                 label={`${ed.nombre_edificio} (${ed.departamento})`}
                 value={ed.id_edificio.toString()}
-            />
+              />
             ))}
-        </Picker>
+          </Picker>
         </View>
-
 
         <TouchableOpacity style={styles.btn} onPress={crearSala}>
           <Text style={styles.btnText}>Crear Sala</Text>
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Salas existentes</Text>
-        {salas.map((s:Sala) => (
+
+        {salas.map((s: Sala) => (
           <View key={s.id_sala} style={styles.row}>
-            <Text>{s.nombre_sala} ({s.nombre_edificio})</Text>
+            <Text>
+              {s.nombre_sala} ({s.nombre_edificio})
+            </Text>
             <TouchableOpacity onPress={() => eliminarSala(s.id_sala)}>
               <Text style={styles.delete}>Eliminar</Text>
             </TouchableOpacity>
@@ -374,95 +456,117 @@ export default function Admin() {
         <Text style={styles.subtitle}>Crear usuario</Text>
 
         <TextInput
-            placeholder="CI"
-            style={styles.input}
-            value={nuevoUsuario.ci}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, ci: t })}
+          placeholder="CI"
+          style={styles.input}
+          value={nuevoUsuario.ci}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, ci: t })}
         />
 
         <TextInput
-            placeholder="Nombre"
-            style={styles.input}
-            value={nuevoUsuario.nombre}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, nombre: t })}
+          placeholder="Nombre"
+          style={styles.input}
+          value={nuevoUsuario.nombre}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, nombre: t })}
         />
 
         <TextInput
-            placeholder="Apellido"
-            style={styles.input}
-            value={nuevoUsuario.apellido}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, apellido: t })}
+          placeholder="Apellido"
+          style={styles.input}
+          value={nuevoUsuario.apellido}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, apellido: t })}
         />
 
         <TextInput
-            placeholder="Email"
-            style={styles.input}
-            value={nuevoUsuario.email}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, email: t })}
+          placeholder="Email"
+          style={styles.input}
+          value={nuevoUsuario.email}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, email: t })}
         />
 
         <TextInput
-            placeholder="Contraseña"
-            style={styles.input}
-            secureTextEntry
-            value={nuevoUsuario.password}
-            onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, password: t })}
+          placeholder="Contraseña"
+          style={styles.input}
+          secureTextEntry
+          value={nuevoUsuario.password}
+          onChangeText={(t) => setNuevoUsuario({ ...nuevoUsuario, password: t })}
         />
 
-        {/* ROL */}
         <Text style={styles.subtitle}>Rol</Text>
+
         <View style={styles.pickerContainer}>
-            <Picker
+          <Picker
             selectedValue={seleccion.rol}
             onValueChange={(value: string) =>
-                setSeleccion({ ...seleccion, rol: value })
+              setSeleccion({ ...seleccion, rol: value })
             }
-            >
+          >
             <Picker.Item label="Seleccione un rol..." value="" />
             {roles.map((r) => (
-                <Picker.Item key={r} label={r} value={r} />
+              <Picker.Item key={r} label={r} value={r} />
             ))}
-            </Picker>
+          </Picker>
         </View>
 
-        {/* PROGRAMA */}
         <Text style={styles.subtitle}>Programa académico</Text>
+
         <View style={styles.pickerContainer}>
-            <Picker
+          <Picker
             selectedValue={seleccion.id_programa}
             onValueChange={(value: string) =>
-                setSeleccion({ ...seleccion, id_programa: value })
+              setSeleccion({ ...seleccion, id_programa: value })
             }
-            >
+          >
             <Picker.Item label="Seleccione un programa..." value="" />
             {programas.map((p: any) => (
-                <Picker.Item
+              <Picker.Item
                 key={p.id_programa}
                 label={p.nombre_programa}
                 value={p.id_programa.toString()}
-                />
+              />
             ))}
-            </Picker>
+          </Picker>
         </View>
 
         <TouchableOpacity style={styles.btn} onPress={crearUsuario}>
-            <Text style={styles.btnText}>Crear Usuario</Text>
+          <Text style={styles.btnText}>Crear Usuario</Text>
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Usuarios existentes</Text>
-        {usuarios.map((u: Participante) => (
-            <View key={u.ci} style={styles.row}>
-            <Text>{u.nombre} {u.apellido}</Text>
-            <TouchableOpacity onPress={() => eliminarUsuario(u.ci)}>
-                <Text style={styles.delete}>Eliminar</Text>
-            </TouchableOpacity>
-            </View>
-        ))}
-        </Accordion>
 
-            </ScrollView>
-        );
-        }
+        {usuarios.map((u: Participante) => (
+          <View key={u.ci} style={styles.row}>
+            <Text>
+              {u.nombre} {u.apellido}
+            </Text>
+            <TouchableOpacity onPress={() => eliminarUsuario(u.ci)}>
+              <Text style={styles.delete}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </Accordion>
+    </ScrollView>
+
+    {/* MODAL DE CONFIRMACIÓN */}
+    <ModalConfirmar
+      visible={modalConfirmarVisible}
+      mensaje={mensajeConfirmacion}
+      onCancelar={() => setModalConfirmarVisible(false)}
+      onConfirmar={() => {
+        setModalConfirmarVisible(false);
+        accionPendiente?.();
+      }}
+    />
+
+    {/*Modal de resultado de error o éxito */}
+    <ModalResultado
+      visible={modalResultadoVisible}
+      mensaje={mensajeResultado}
+      exito={resultadoExito}
+      onCerrar={() => setModalResultadoVisible(false)}
+    />
+  </>
+);
+}
 
 const styles = StyleSheet.create({
     pickerContainer: {

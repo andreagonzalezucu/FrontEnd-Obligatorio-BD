@@ -216,7 +216,7 @@ export default function SalaDetalle() {
 
       if (!response.ok) {
         errorMostrado = data.mensaje || "Error en reserva";
-        break; // ❗ Cortamos el bucle para no tirar dos errores
+        break; //  Cortamos el bucle para no tirar dos errores
       }
 
       // si llega acá fue exitosa
