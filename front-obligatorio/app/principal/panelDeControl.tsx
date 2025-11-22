@@ -130,17 +130,61 @@ export default function Admin() {
   const handleEliminarEdificio = (id_edificio: number) => {
     setMensajeConfirmacion(
       "⚠️ ¿Seguro que deseas eliminar este edificio?\n\n" +
-      "Al eliminarlo también se borrarán todas las salas pertenecientes a este edificio, " +
-      "y las reservas asociadas a esas salas quedarán eliminadas de forma permanente.\n\n" +
+      "Si el edificio tiene salas asociadas, deberás confirmar una eliminación FORZADA.\n" +
+      "Esta acción borrará:\n" +
+      "• Todas las salas del edificio\n" +
+      "• Todas las reservas de esas salas\n" +
+      "• Todas las relaciones que tenían los participantes con dichas reservas\n\n" +
       "Esta acción NO se puede deshacer."
     );
 
-    setAccionPendiente(() => () => eliminarEdificio(id_edificio));
+    setAccionPendiente(() => () => intentoEliminarEdificio(id_edificio));
     setModalConfirmarVisible(true);
   };
 
+  const intentoEliminarEdificio = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/edificios/${id}`, {
+        method: "DELETE",
+      });
 
-  const eliminarEdificio = async (id: number) => {
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (res.ok) {
+        setResultadoExito(true);
+        setMensajeResultado("Edificio eliminado con éxito");
+        cargarTodo();
+        setModalResultadoVisible(true);
+        return;
+      }
+
+      // Caso 409 → necesita force
+      if (res.status === 409) {
+        setMensajeConfirmacion(
+          "⚠️ El edificio tiene salas asociadas.\n\n" +
+          "¿Deseas continuar con la eliminación FORZADA?\n" +
+          "Esto borrará salas, reservas y relaciones asociadas."
+        );
+
+        setAccionPendiente(() => () => eliminarEdificioForzado(id));
+        setModalConfirmarVisible(true);
+        return;
+      }
+
+      throw new Error(data?.mensaje || "Error al eliminar el edificio");
+    } catch (e) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al intentar eliminar el edificio.");
+      setModalResultadoVisible(true);
+    }
+  };
+
+  const eliminarEdificioForzado = async (id: number) => {
     try {
       const res = await fetch(`${BASE_URL}/edificios/${id}?force=true`, {
       method: "DELETE",
@@ -153,25 +197,16 @@ export default function Admin() {
         data = {};
       }
 
-      if (!res.ok){
-        if (res.status === 409) {
-          setResultadoExito(false);
-          setMensajeResultado(
-            data?.mensaje || "No se puede eliminar el edificio porque tiene salas asociadas."
-          );
-          setModalResultadoVisible(true);
-          return;
-        }
-        // Otros errores (500, 404, etc)
-        throw new Error(data?.mensaje || "Error al eliminar");
-      } 
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error al eliminar edificio.");
+      }
 
       setResultadoExito(true);
       setMensajeResultado("Edificio eliminado con éxito");
       cargarTodo();
     } catch (err) {
       setResultadoExito(false);
-      setMensajeResultado("Error inesperado al eliminar el edificio.");
+      setMensajeResultado("Error inesperado al eliminar edificio.");
     }
 
     setModalResultadoVisible(true);
@@ -207,39 +242,46 @@ export default function Admin() {
   const handleEliminarSala = (id_sala: number) => {
     setMensajeConfirmacion(
       "⚠️ ¿Seguro que deseas eliminar esta sala?\n\n" +
-      "Todas las reservas asociadas a esta sala serán eliminadas de forma permanente.\n\n" +
+      "Si tiene reservas asociadas, deberás confirmar nuevamente.\n\n" +
       "Esta acción NO se puede deshacer."
     );
-    setAccionPendiente(() => () => eliminarSala(id_sala));
+
+    // Primer intento: force = false
+    setAccionPendiente(() => () => intentoEliminarSala(id_sala));
     setModalConfirmarVisible(true);
   };
 
-  const eliminarSala = async (id: number) => {
-    try{
-      const res = await fetch(`${BASE_URL}/salas/${id}?force=true`, {
+  const intentoEliminarSala = async (id: number) => {
+  try {
+    const res = await fetch(`${BASE_URL}/salas/${id}?force=false`, {
       method: "DELETE",
-      });
+    });
 
-      let data = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (!res.ok) {
+      // Si el backend devuelve 409 → requiere force
+      if (res.status === 409) {
+        setMensajeConfirmacion(
+          `⚠️ La sala tiene reservas asociadas.\n\n` +
+          `${data?.mensaje || "¿Deseas forzar la eliminación?"}`
+        );
+
+        // Ahora la acción pendiente será el DELETE con force=true
+        setAccionPendiente(() => () => eliminarSalaForzado(id));
+        setModalConfirmarVisible(true);
+        return;
       }
 
-      if (!res.ok){
-        if (res.status === 409) {
-          setResultadoExito(false);
-          setMensajeResultado(
-            data?.mensaje || "No se puede eliminar la sala porque tiene reservas asociadas."
-          );
-          setModalResultadoVisible(true);
-          return;
-        }
+      throw new Error(data?.mensaje || "Error al eliminar la sala");
+    }
 
-        throw new Error(data?.mensaje || "Error al eliminar la sala");
-      } 
-
+      // Eliminó OK sin force
       setResultadoExito(true);
       setMensajeResultado("Sala eliminada con éxito");
       cargarTodo();
@@ -250,6 +292,36 @@ export default function Admin() {
 
     setModalResultadoVisible(true);
   };
+
+
+  const eliminarSalaForzado = async (id: number) => {
+  try {
+    const res = await fetch(`${BASE_URL}/salas/${id}?force=true`, {
+      method: "DELETE",
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.mensaje || "Error al eliminar la sala");
+    }
+
+    setResultadoExito(true);
+    setMensajeResultado("Sala eliminada con éxito");
+    cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar la sala.");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
 
 
   const crearUsuario = async () => {
