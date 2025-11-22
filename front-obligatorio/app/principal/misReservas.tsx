@@ -195,9 +195,28 @@ export default function MisReservas() {
         <View key={r.id_reserva} style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.cardSala}>{r.nombre_sala}</Text>
-            <Text style={[styles.estado, estilosEstado(r.estado)]}>
-              {r.estado.toUpperCase()}
-            </Text>
+            {(() => {
+              const ahora = new Date();
+              const inicio = new Date(`${r.fecha}T${r.hora_inicio}`);
+              const fin = new Date(`${r.fecha}T${r.hora_fin}`);
+
+              let estadoVisual = r.estado;
+
+              // Si está activa, vemos si debería mostrarse EN CURSO o FINALIZADA
+              if (r.estado === "activa") {
+                if (ahora >= inicio && ahora <= fin) {
+                  estadoVisual = "en curso";
+                } else if (ahora > fin) {
+                  estadoVisual = "finalizada";
+                }
+              }
+
+              return (
+                <Text style={[styles.estado, estilosEstado(estadoVisual)]}>
+                  {estadoVisual.toUpperCase()}
+                </Text>
+              );
+            })()}
           </View>
 
           <Text style={styles.info}>📅 {r.fecha}</Text>
@@ -271,10 +290,12 @@ function estilosEstado(estado:string) {
   switch (estado) {
     case "activa":
       return { backgroundColor: "#2563eb" };
+    case "en curso":
+      return { backgroundColor: "#16a34a" };
     case "cancelada":
       return { backgroundColor: "#dc2626" };
     case "finalizada":
-      return { backgroundColor: "#16a34a" };
+      return { backgroundColor: "#0ea5e9" };
     case "sin asistencia":
       return { backgroundColor: "#ca8a04" };
     default:

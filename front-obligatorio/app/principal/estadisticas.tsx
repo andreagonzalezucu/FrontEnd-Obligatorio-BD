@@ -11,6 +11,7 @@ type Estadisticas = {
   edificio: any[];
   actividad: any[];
   sanciones: any[];
+  sancionesActivas: any[];
 };
 
 export default function Estadisticas() {
@@ -27,7 +28,8 @@ export default function Estadisticas() {
     carrera: [],
     edificio: [],
     actividad: [],
-    sanciones: []
+    sanciones: [],
+    sancionesActivas:[]
     });
 
   const fetchAllStats = async () => {
@@ -39,7 +41,8 @@ export default function Estadisticas() {
         carrera: "/reservas/reportes/reservas-por-carrera",
         edificio: "/reservas/reportes/ocupacion-edificio",
         actividad: "/reservas/reportes/actividad-personas",
-        sanciones: "/reservas/reportes/sanciones"
+        sanciones: "/reservas/reportes/sanciones",
+        sancionesActivas: "/sanciones/activas"
       };
 
       const results: Estadisticas = {
@@ -50,6 +53,7 @@ export default function Estadisticas() {
         edificio: [],
         actividad: [],
         sanciones: [],
+        sancionesActivas:[],
         };
 
       for (const key of Object.keys(endpoints) as (keyof Estadisticas)[]) {
@@ -144,6 +148,21 @@ export default function Estadisticas() {
           </Text>
         ))}
       </Accordion>
+
+      <Accordion title="Sanciones activas">
+        {stats.sancionesActivas.length === 0 ? (
+            <Text style={styles.item}>No hay sanciones activas.</Text>
+        ) : (
+            stats.sancionesActivas.map((s, i) => (
+            <Text key={i} style={styles.item}>
+                {s.nombre} {s.apellido} — CI: {s.ci_participante}{"\n"}
+                Desde: {s.fecha_inicio}{"\n"}
+                Hasta: {s.fecha_fin}
+            </Text>
+            ))
+        )}
+       </Accordion>
+
 
     </ScrollView>
   );
