@@ -5,6 +5,7 @@ export default function PrincipalLayout() {
     <Stack screenOptions={{ title:"Inicio" }}>
       <Stack.Screen name="index" options={{ headerLeft: () => null }}/>       
       <Stack.Screen name="misReservas" /> 
+      <Stack.Screen name="reservasGenerales" /> 
       <Stack.Screen name="estadisticas" />
       <Stack.Screen name="edificio" /> 
       <Stack.Screen name="sala" />       
