@@ -549,63 +549,21 @@ const crearFacultad = async () => {
   const handleEliminarFacultad = (id_facultad: number) => {
     setMensajeConfirmacion(
       "⚠️ ¿Seguro que deseas eliminar esta facultad?\n\n" +
-      "Si el edificio tiene salas asociadas, deberás confirmar una eliminación FORZADA.\n" +
+      "Si la facultad tiene programas asociados, se realizará una eliminación FORZADA.\n" +
       "Esta acción borrará:\n" +
-      "• Todas las salas del edificio\n" +
-      "• Todas las reservas de esas salas\n" +
-      "• Todas las relaciones que tenían los participantes con dichas reservas\n\n" +
+      "• Todos los programas de dicha facultad\n" +
+      "• Todas las relaciones que tenían los participantes con dichaos programas\n\n" +
       "Esta acción NO se puede deshacer."
     );
 
-    setAccionPendiente(() => () => intentoEliminarFacultad(id_facultad));
+    setAccionPendiente(() => () => eliminarFacultad(id_facultad));
     setModalConfirmarVisible(true);
   };
 
-  const intentoEliminarFacultad = async (id: number) => {
+
+  const eliminarFacultad = async (id: number) => {
     try {
       const res = await fetch(`${BASE_URL}/facultades/${id}`, {
-        method: "DELETE",
-      });
-
-      let data = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (res.ok) {
-        setResultadoExito(true);
-        setMensajeResultado("Facultad eliminada con éxito");
-        cargarTodo();
-        setModalResultadoVisible(true);
-        return;
-      }
-
-      // Caso 409 → necesita force
-      if (res.status === 409) {
-        setMensajeConfirmacion(
-          "⚠️ El edificio tiene salas asociadas.\n\n" +
-          "¿Deseas continuar con la eliminación FORZADA?\n" +
-          "Esto borrará salas, reservas y relaciones asociadas."
-        );
-
-        setAccionPendiente(() => () => eliminarFacultadForzado(id));
-        setModalConfirmarVisible(true);
-        return;
-      }
-
-      throw new Error(data?.mensaje || "Error al eliminar el edificio");
-    } catch (e) {
-      setResultadoExito(false);
-      setMensajeResultado("Error inesperado al intentar eliminar el edificio.");
-      setModalResultadoVisible(true);
-    }
-  };
-
-  const eliminarFacultadForzado = async (id: number) => {
-    try {
-      const res = await fetch(`${BASE_URL}/facultades/${id}?force=true`, {
       method: "DELETE",
       });
 
@@ -632,7 +590,7 @@ const crearFacultad = async () => {
   };
 
   const crearPrograma = async () => {
-    if (!nuevoEdificio.nombre) return Alert.alert("Error", "El nombre es obligatorio");
+    if (!nuevoPrograma.nombre_programa) return Alert.alert("Error", "El nombre es obligatorio");
 
     const res = await fetch(`${BASE_URL}/programas`, {
       method: "POST",
@@ -657,64 +615,18 @@ const crearFacultad = async () => {
 
   const handleEliminarPrograma = (id_programa: number) => {
     setMensajeConfirmacion(
-      "⚠️ ¿Seguro que deseas eliminar este edificio?\n\n" +
-      "Si el edificio tiene salas asociadas, deberás confirmar una eliminación FORZADA.\n" +
-      "Esta acción borrará:\n" +
-      "• Todas las salas del edificio\n" +
-      "• Todas las reservas de esas salas\n" +
-      "• Todas las relaciones que tenían los participantes con dichas reservas\n\n" +
+      "⚠️ ¿Seguro que deseas eliminar este programa?\n\n" +
+      "Aquellas personas que pertenezcan a este programa estarán registradas sin programa asociado"+
       "Esta acción NO se puede deshacer."
     );
 
-    setAccionPendiente(() => () => intentoEliminarPrograma(id_programa));
+    setAccionPendiente(() => () => eliminarPrograma(id_programa));
     setModalConfirmarVisible(true);
   };
 
-  const intentoEliminarPrograma = async (id: number) => {
+  const eliminarPrograma = async (id: number) => {
     try {
       const res = await fetch(`${BASE_URL}/programas/${id}`, {
-        method: "DELETE",
-      });
-
-      let data = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      if (res.ok) {
-        setResultadoExito(true);
-        setMensajeResultado("Programa eliminado con éxito");
-        cargarTodo();
-        setModalResultadoVisible(true);
-        return;
-      }
-
-      // Caso 409 → necesita force
-      if (res.status === 409) {
-        setMensajeConfirmacion(
-          "⚠️ El edificio tiene salas asociadas.\n\n" +
-          "¿Deseas continuar con la eliminación FORZADA?\n" +
-          "Esto borrará salas, reservas y relaciones asociadas."
-        );
-
-        setAccionPendiente(() => () => eliminarProgramaForzado(id));
-        setModalConfirmarVisible(true);
-        return;
-      }
-
-      throw new Error(data?.mensaje || "Error al eliminar el edificio");
-    } catch (e) {
-      setResultadoExito(false);
-      setMensajeResultado("Error inesperado al intentar eliminar el edificio.");
-      setModalResultadoVisible(true);
-    }
-  };
-
-  const eliminarProgramaForzado = async (id: number) => {
-    try {
-      const res = await fetch(`${BASE_URL}/programas/${id}?force=true`, {
       method: "DELETE",
       });
 
@@ -726,15 +638,15 @@ const crearFacultad = async () => {
       }
 
       if (!res.ok) {
-        throw new Error(data?.mensaje || "Error al eliminar edificio.");
+        throw new Error(data?.mensaje || "Error al eliminar programa.");
       }
 
       setResultadoExito(true);
-      setMensajeResultado("Edificio eliminado con éxito");
+      setMensajeResultado("Programa eliminado con éxito");
       cargarTodo();
     } catch (err) {
       setResultadoExito(false);
-      setMensajeResultado("Error inesperado al eliminar edificio.");
+      setMensajeResultado("Error inesperado al eliminar programa.");
     }
 
     setModalResultadoVisible(true);
