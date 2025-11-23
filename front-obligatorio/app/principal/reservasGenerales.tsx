@@ -158,6 +158,45 @@ export default function MisReservas() {
     });
   };
 
+  async function marcarAsistencia(id_reserva: number, ci:string) {
+    try{
+      const response = await fetch(
+        `${BASE_URL}/reservas/${id_reserva}/participantes/${ci}/asistencia`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ asistencia: true }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert("Error", data.mensaje || "No se pudo registrar la asistencia.");
+        return;
+      }
+
+      Alert.alert("Asistencia registrada");
+      cargarReservas();
+    }catch (error){
+      Alert.alert("Error", "No se pudo conectar al servidor.");
+    }
+
+  }
+
+  function estadoAsistencia(r: ReservaGeneral, p:Participante) {
+    const ahora = new Date();
+    const inicio = new Date(`${r.fecha}T${r.turno.hora_inicio}`);
+    const fin = new Date(`${r.fecha}T${r.turno.hora_fin}`);
+
+    if (p.asistencia === 1) return "asistio";
+    if (p.asistencia === 0) return "no_asistio";
+
+    if (ahora < inicio) return "antes";
+    if (ahora >= inicio && ahora <= fin) return "en_curso";
+
+    return "cerrado";
+  }
 
   if (loading) {
     return (
@@ -209,20 +248,52 @@ export default function MisReservas() {
     <View style={styles.participantesBox}>
       <Text style={styles.participantesTitulo}>👥 Participantes</Text>
 
-      {r.participantes.map((p) => (
-        <View key={p.ci} style={styles.participanteItem}>
-          <Text style={styles.participanteNombre}>{p.nombre} {p.apellido}</Text>
-          <Text style={styles.participanteDato}>CI: {p.ci}</Text>
-          <Text style={styles.participanteDato}>Solicitud: {p.fecha_solicitud_reserva}</Text>
-          <Text style={styles.participanteAsistencia}>
-            Asistencia:{" "}
-            <Text style={{ color: p.asistencia ? "#16a34a" : "#dc2626" }}>
-              {p.asistencia ? "PRESENTE" : "AUSENTE"}
+      {r.participantes.map((p) => {
+        const estado = estadoAsistencia(r, p);
+
+        return (
+          <View key={p.ci} style={styles.participanteItem}>
+
+            <Text style={styles.participanteNombre}>
+              {p.nombre} {p.apellido}
             </Text>
-          </Text>
-        </View>
-      ))}
+
+            <Text style={styles.participanteDato}>CI: {p.ci}</Text>
+            <Text style={styles.participanteDato}>
+              Solicitud: {p.fecha_solicitud_reserva}
+            </Text>
+
+            <Text style={styles.participanteAsistencia}>
+              Estado:{" "}
+              <Text
+                style={{
+                  color:
+                    estado === "asistio"
+                      ? "#16a34a"
+                      : estado === "no_asistio" || estado === "cerrado"
+                      ? "#dc2626"
+                      : "#2563eb",
+                }}
+              >
+                {estado}
+              </Text>
+            </Text>
+
+            {/* BOTÓN SOLO SI SE PUEDE MARCAR */}
+            {estado === "en_curso" && p.asistencia === null && (
+              <TouchableOpacity
+                style={styles.btnAsistencia}
+                onPress={() => marcarAsistencia(r.id_reserva, p.ci)}
+              >
+                <Text style={styles.btnAsistenciaText}>Marcar asistencia</Text>
+              </TouchableOpacity>
+            )}
+
+          </View>
+        );
+      })}
     </View>
+
     
     {/* BOTONES: Eliminar / CANCELAR */}
       <TouchableOpacity
