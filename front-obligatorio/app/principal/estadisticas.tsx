@@ -170,21 +170,46 @@ export default function Estadisticas() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20
+    padding: 20,
+    backgroundColor: "#f8fafc", // Fondo suave
   },
+
   center: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
   },
+
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#1e3a8a"
+    fontSize: 30,
+    fontWeight: "900",
+    marginBottom: 25,
+    textAlign: "center",
+    color: "#1e3a8a",
+    letterSpacing: 0.5,
   },
+
   item: {
     fontSize: 16,
-    marginVertical: 4
-  }
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginVertical: 6,
+
+    backgroundColor: "white",
+    borderRadius: 10,
+
+    // Sombra iOS
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+
+    // Sombra Android
+    elevation: 3,
+
+    color: "#334155",
+    lineHeight: 22,
+  },
 });
+

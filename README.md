@@ -48,7 +48,8 @@ FRONTEND-OBLIGATORIO-BD/
     │   │   ├── index.jsx
     │   │   ├── login.tsx
     │   │   ├── misReservas.jsx
-    │   │   └── panelDeControl.jsx
+    │   │   ├── panelDeControl.jsx
+    │   │   └── reservasGenerales.jsx
     │   │
     │   ├── components/
     │   │   ├── Accordion.jsx
@@ -68,7 +69,8 @@ FRONTEND-OBLIGATORIO-BD/
     │   │   ├── estadisticas.tsx
     │   │   ├── index.tsx
     │   │   ├── misReservas.tsx
-    │   │   └── panelDeControl.tsx
+    │   │   ├── panelDeControl.tsx
+    │   │   └── reservasGenerales.tsx
     │   │
     │   ├── types/
     │   │
@@ -162,7 +164,14 @@ El frontend implementa los siguientes flujos principales:
 + Listado de reservas activas y canceladas
 + Detalle de cada reserva
 + Cancelación de reservas
++ Marcado de asistencia de reserva (dentro del horario establecido)
 
+### 📘 Reservas Generales (_misReservas.tsx_)
+
++ Módulo habilitado solo para administradores
++ Listado de todas las reservas activas y canceladas del sistema
++ Detalle de cada reserva
++ Cancelación y eliminación de reservas
 
 ### 📶 Estadísticas (_estadisticas.tsx_)
 
@@ -174,8 +183,8 @@ El frontend implementa los siguientes flujos principales:
 ### 💻 Panel de control (_panelDeControl.tsx_)
 
 + Módulo habilitado solo para admin.
-+ Permite crear, modificar y eliminar elementos del programa (edificios, salas, horarios disponibles).
-+ El admin puede registrar nuevos participantes, como también monitorear su asistencia y sanciones.
++ Permite crear, modificar y eliminar elementos del programa (edificios, salas, facultades, programas académicos, usuarios).
++ El admin puede registrar nuevos participantes, como también monitorear sus asistencias y sanciones.
 
 ---
 

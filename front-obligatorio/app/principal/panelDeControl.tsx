@@ -28,6 +28,17 @@ export type Participante = {
   email: string;
 };
 
+type Facultad= {
+  id_facultad: number;
+  nombre: string;
+}
+
+type ProgramaAcademico = {
+  id_facultad: number;
+  id_programa: number;
+  nombre_programa : string;
+  tipo: string;
+}
 
 export default function Admin() {
   const BASE_URL =
@@ -40,8 +51,9 @@ export default function Admin() {
   const [salas, setSalas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [departamentos, setDepartamentos] = useState<string[]>([]);
+  const [facultades, setFacultades] = useState<Facultad[]>([]);
+  const [programas, setProgramas] = useState<ProgramaAcademico[]>([]);
   const [roles] = useState(["docente", "alumno"]);
-  const [programas, setProgramas] = useState([]);
   const [seleccion, setSeleccion] = useState({ rol: "", id_programa: "" });
 
   const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
@@ -74,13 +86,25 @@ export default function Admin() {
     password: "",
   });
 
+  const [nuevaFacultad, setNuevaFacultad] = useState({
+    nombre: "",
+  });
+
+  const [nuevoPrograma, setNuevoPrograma] = useState({
+    nombre_programa: "",
+    id_facultad: "",
+    tipo: "",
+  });
+
   const cargarTodo = async () => {
     try {
-      const [e, s, u] = await Promise.all([
+      const [e, s, u, f, p] = await Promise.all([
         fetch(`${BASE_URL}/edificios`).then(r => r.json() as Promise<Edificio[]>),
         fetch(`${BASE_URL}/salas`).then(r => r.json()),
         fetch(`${BASE_URL}/participantes`).then(r => r.json()),
-        ]);
+        fetch(`${BASE_URL}/facultades`).then(r => r.json() as Promise<Facultad[]>),
+        fetch(`${BASE_URL}/programas`).then(r => r.json()) as Promise<ProgramaAcademico[]>  
+      ]);
 
 
       setEdificios(e);
@@ -88,8 +112,8 @@ export default function Admin() {
       setDepartamentos(deps);
       setSalas(s);
       setUsuarios(u);
-      const p = await fetch(`${BASE_URL}/programas`).then(r => r.json());
-        setProgramas(p);
+      setFacultades(f)
+      setProgramas(p);
 
 
     } catch (err) {
@@ -500,6 +524,133 @@ const intentarEliminarUsuario = async (ci: string) => {
     setModalResultadoVisible(true);
   };
 
+const crearFacultad = async () => {
+    if (!nuevaFacultad.nombre) return Alert.alert("Error", "El nombre es obligatorio");
+
+    const res = await fetch(`${BASE_URL}/facultades`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: nuevaFacultad.nombre,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      Alert.alert("Éxito", data.mensaje);
+      setNuevaFacultad({ nombre: "" });
+      cargarTodo();
+    } else {
+      Alert.alert("Error", data.mensaje);
+    }
+  };
+
+  const handleEliminarFacultad = (id_facultad: number) => {
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar esta facultad?\n\n" +
+      "Si la facultad tiene programas asociados, se realizará una eliminación FORZADA.\n" +
+      "Esta acción borrará:\n" +
+      "• Todos los programas de dicha facultad\n" +
+      "• Todas las relaciones que tenían los participantes con dichos programas\n\n" +
+      "Esta acción NO se puede deshacer."
+    );
+
+    setAccionPendiente(() => () => eliminarFacultad(id_facultad));
+    setModalConfirmarVisible(true);
+  };
+
+
+  const eliminarFacultad = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/facultades/${id}`, {
+      method: "DELETE",
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error al eliminar facultad.");
+      }
+
+      setResultadoExito(true);
+      setMensajeResultado("Facultad eliminada con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar facultad.");
+    }
+
+    setModalResultadoVisible(true);
+  };
+
+  const crearPrograma = async () => {
+    if (!nuevoPrograma.nombre_programa) return Alert.alert("Error", "El nombre es obligatorio");
+
+    const res = await fetch(`${BASE_URL}/programas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre_programa: nuevoPrograma.nombre_programa,
+        tipo: nuevoPrograma.tipo,
+        id_facultad: nuevoPrograma.id_facultad,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      Alert.alert("Éxito", data.mensaje);
+      setNuevoPrograma({ nombre_programa: "", tipo: "" , id_facultad:""});
+      cargarTodo();
+    } else {
+      Alert.alert("Error", data.mensaje);
+    }
+  };
+
+  const handleEliminarPrograma = (id_programa: number) => {
+    setMensajeConfirmacion(
+      "⚠️ ¿Seguro que deseas eliminar este programa?\n\n" +
+      "Aquellas personas que pertenezcan a este programa estarán registradas sin programa asociado\n\n"+
+      "Esta acción NO se puede deshacer."
+    );
+
+    setAccionPendiente(() => () => eliminarPrograma(id_programa));
+    setModalConfirmarVisible(true);
+  };
+
+  const eliminarPrograma = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/programas/${id}`, {
+      method: "DELETE",
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.mensaje || "Error al eliminar programa.");
+      }
+
+      setResultadoExito(true);
+      setMensajeResultado("Programa eliminado con éxito");
+      cargarTodo();
+    } catch (err) {
+      setResultadoExito(false);
+      setMensajeResultado("Error inesperado al eliminar programa.");
+    }
+
+    setModalResultadoVisible(true);
+  };
 
 
 
@@ -583,13 +734,18 @@ return (
           value={nuevaSala.capacidad}
           onChangeText={(t) => setNuevaSala({ ...nuevaSala, capacidad: t })}
         />
-
-        <TextInput
-          placeholder="Tipo (docente, libre, posgrado)"
-          style={styles.input}
-          value={nuevaSala.tipo}
-          onChangeText={(t) => setNuevaSala({ ...nuevaSala, tipo: t })}
-        />
+        <Text style={styles.subtitle}>Tipo (docente, libre, posgrado)</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={nuevaSala.tipo}
+            onValueChange={(t) => setNuevaSala({ ...nuevaSala, tipo: t })}>
+            
+            <Picker.Item label="Seleccione un tipo..." value="" />
+            <Picker.Item label="Exclusiva docentes" value="docente" />
+            <Picker.Item label="De uso Libre" value="libre" />
+            <Picker.Item label="Exclusiva estudiantes de posgrado" value="posgrado" />
+          </Picker>
+        </View>
 
         <Text style={styles.subtitle}>Edificio</Text>
 
@@ -721,6 +877,90 @@ return (
             </TouchableOpacity>
           </View>
         ))}
+      </Accordion>
+
+      <Accordion title="Administrar Facultades">
+        <Text style={styles.subtitle}>Crear facultad</Text>
+
+        <TextInput
+          placeholder="Nombre"
+          style={styles.input}
+          value={nuevaFacultad.nombre}
+          onChangeText={(t) => setNuevaFacultad({ ...nuevaFacultad, nombre: t })}
+        />
+        
+        <Text style={styles.subtitle}>Facultad</Text>
+    
+        <TouchableOpacity style={styles.btn} onPress={crearFacultad}>
+          <Text style={styles.btnText}>Crear Facultad</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.subtitle}>Facultades existentes</Text>
+
+        {facultades.map((f: Facultad) => (
+          <View key={f.id_facultad} style={styles.row}>
+            <Text>{f.nombre}</Text>
+            <TouchableOpacity onPress={() => handleEliminarFacultad(f.id_facultad)}>
+              <Text style={styles.delete}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </Accordion>
+
+      <Accordion title="Administrar Programas Académicos">
+        <Text style={styles.subtitle}>Crear Programa Académico</Text>
+
+        <TextInput
+          placeholder="Nombre"
+          style={styles.input}
+          value={nuevoPrograma.nombre_programa}
+          onChangeText={(t) => setNuevoPrograma({ ...nuevoPrograma, nombre_programa: t })}
+        />
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={nuevoPrograma.id_facultad}
+            onValueChange={(value: string) =>
+              setNuevoPrograma({ ...nuevoPrograma, id_facultad: value })
+            }
+          >
+            <Picker.Item label="Seleccione facultad a la que corresponde..." value="" />
+            {facultades.map((f: any) => (
+              <Picker.Item
+                key={f.id_facultad}
+                label={f.nombre}
+                value={f.id_facultad.toString()}
+              />
+            ))}
+          </Picker>
+        </View>
+
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={nuevoPrograma.tipo}
+            onValueChange={(t) => setNuevoPrograma({ ...nuevoPrograma, tipo: t })}>
+            
+            <Picker.Item label="Seleccione un tipo..." value="" />
+            <Picker.Item label="Carrera de Grado" value="grado" />
+            <Picker.Item label="Carrera de Posgrado" value="posgrado" />
+          </Picker>
+        </View>
+        
+        <TouchableOpacity style={styles.btn} onPress={crearPrograma}>
+          <Text style={styles.btnText}>Crear Programa Académico</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.subtitle}>Programas Académicos existentes</Text>
+
+        {programas.map((p: ProgramaAcademico) => (
+          <View key={p.id_programa} style={styles.row}>
+            <Text>{p.nombre_programa}</Text>
+            <TouchableOpacity onPress={() => handleEliminarPrograma(p.id_programa)}>
+              <Text style={styles.delete}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
       </Accordion>
     </ScrollView>
 
