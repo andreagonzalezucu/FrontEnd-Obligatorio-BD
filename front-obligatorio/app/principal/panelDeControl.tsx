@@ -616,7 +616,7 @@ const crearFacultad = async () => {
   const handleEliminarPrograma = (id_programa: number) => {
     setMensajeConfirmacion(
       "⚠️ ¿Seguro que deseas eliminar este programa?\n\n" +
-      "Aquellas personas que pertenezcan a este programa estarán registradas sin programa asociado"+
+      "Aquellas personas que pertenezcan a este programa estarán registradas sin programa asociado\n\n"+
       "Esta acción NO se puede deshacer."
     );
 
@@ -937,8 +937,8 @@ return (
 
         <View style={styles.pickerContainer}>
           <Picker
-            selectedValue={nuevaSala.tipo}
-            onValueChange={(t) => setNuevaSala({ ...nuevaSala, tipo: t })}>
+            selectedValue={nuevoPrograma.tipo}
+            onValueChange={(t) => setNuevoPrograma({ ...nuevoPrograma, tipo: t })}>
             
             <Picker.Item label="Seleccione un tipo..." value="" />
             <Picker.Item label="Carrera de Grado" value="grado" />
