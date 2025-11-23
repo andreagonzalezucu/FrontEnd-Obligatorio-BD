@@ -552,7 +552,7 @@ const crearFacultad = async () => {
       "Si la facultad tiene programas asociados, se realizará una eliminación FORZADA.\n" +
       "Esta acción borrará:\n" +
       "• Todos los programas de dicha facultad\n" +
-      "• Todas las relaciones que tenían los participantes con dichaos programas\n\n" +
+      "• Todas las relaciones que tenían los participantes con dichos programas\n\n" +
       "Esta acción NO se puede deshacer."
     );
 
