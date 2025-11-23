@@ -73,7 +73,7 @@ export default function PrincipalHome() {
       {rol === "admin" ? (
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push("/principal/reservasGenerales")}
+          onPress={() => router.push("/principal/reservasGenerales/")}
         >
           <Text style={styles.buttonText}>Reservas Generales</Text>
         </TouchableOpacity>
