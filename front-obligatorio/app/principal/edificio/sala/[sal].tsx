@@ -58,6 +58,15 @@ export default function SalaDetalle() {
   const [buscarParticipante, setBuscarParticipante] = useState("");
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
+  const [rol, setRol] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cargarRol = async () => {
+      const r = await AsyncStorage.getItem("user_rol");
+      setRol(r);
+    };
+    cargarRol();
+  }, []);
 
   // ----- Cargar CI del usuario y agregarlo por defecto -----
   useEffect(() => {
@@ -481,7 +490,13 @@ export default function SalaDetalle() {
         errorMessage={errorModal}
         onClose={() => {
           setModalVisible(false);
-          if (successData) router.replace('/principal/misReservas')
+          if (successData) {
+            if (rol === "admin"){
+              router.replace('/principal/reservasGenerales')
+            }else{
+            router.replace('/principal/misReservas')
+            }
+          }
         }}
       />
 
