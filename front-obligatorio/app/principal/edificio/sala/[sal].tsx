@@ -48,7 +48,12 @@ export default function SalaDetalle() {
   const [successData, setSuccessData] = useState<ReservaExitosa | null>(null);
   const [errorModal, setErrorModal] = useState<string | null>(null);
   
-  const hoy = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const hoyDate = new Date();
+  const yyyy = hoyDate.getFullYear();
+  const mm = String(hoyDate.getMonth() + 1).padStart(2, "0");
+  const dd = String(hoyDate.getDate()).padStart(2, "0");
+  const hoy = `${yyyy}-${mm}-${dd}`;
+
 
   const [buscarParticipante, setBuscarParticipante] = useState("");
   const [dropdownVisible, setDropdownVisible] = useState(false);
